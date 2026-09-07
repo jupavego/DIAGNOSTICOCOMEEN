@@ -368,12 +368,14 @@
       contenedor.appendChild(cuerpo);
 
       contenedor.appendChild(el('div.pie-nav', null, [
+        /* En la encuesta pública no hay "Salir": no existe un panel al que
+           volver, y ofrecerlo solo confundiría al comerciante. */
         indice > 0 ? el('button.btn.btn--secundario', {
           type: 'button',
           onclick: function () { errores = []; indice--; guardarBorrador(); pintar(); global.scrollTo(0, 0); }
-        }, 'Atrás') : el('button.btn.btn--fantasma', {
+        }, 'Atrás') : (opciones.permiteSalir ? el('button.btn.btn--fantasma', {
           type: 'button', onclick: function () { opciones.alSalir && opciones.alSalir(); }
-        }, 'Salir'),
+        }, 'Salir') : null),
         el('button.btn.btn--principal', {
           type: 'button',
           onclick: function () {

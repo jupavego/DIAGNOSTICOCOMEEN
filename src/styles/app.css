@@ -713,6 +713,10 @@ textarea.campo__control { resize: vertical; min-height: 88px; }
   font-size: var(--texto-sm);
 }
 
+/* ── Ingreso del administrador ──────────────────────────────────────────── */
+.ingreso { display: flex; flex-direction: column; gap: var(--e-5); }
+.ingreso .btn--bloque { margin-top: var(--e-2); }
+
 /* ── Panel: indicadores ─────────────────────────────────────────────────── */
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--e-3); }
 

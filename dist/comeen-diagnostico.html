@@ -872,6 +872,10 @@ textarea.campo__control { resize: vertical; min-height: 88px; }
   font-size: var(--texto-sm);
 }
 
+/* ── Ingreso del administrador ──────────────────────────────────────────── */
+.ingreso { display: flex; flex-direction: column; gap: var(--e-5); }
+.ingreso .btn--bloque { margin-top: var(--e-2); }
+
 /* ── Panel: indicadores ─────────────────────────────────────────────────── */
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--e-3); }
 
@@ -1523,6 +1527,50 @@ textarea.campo__control { resize: vertical; min-height: 88px; }
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
 
+/* ===== src/config/supabase.js ===== */
+/* ============================================================================
+   config/supabase.js — Conexión con la base de datos
+   ----------------------------------------------------------------------------
+   Pegue aquí los dos valores del proyecto de Supabase:
+     Project Settings → API → Project URL  y  anon public
+
+   SOBRE PUBLICAR LA LLAVE: la llave 'anon' está pensada para vivir en el
+   navegador; no es un secreto. Lo que protege los datos NO es esconderla, sino
+   las políticas RLS de supabase/001_diagnosticos.sql, que permiten insertar de
+   forma anónima pero no leer. Si esas políticas no están aplicadas, cualquiera
+   con esta llave podría leer toda la tabla.
+
+   NUNCA poner aquí la llave 'service_role': esa sí ignora el RLS.
+
+   Mientras 'url' esté vacío la aplicación funciona igual, guardando en el
+   dispositivo. Así se puede trabajar y probar sin base de datos.
+   ========================================================================== */
+(function (global) {
+  'use strict';
+
+  var SUPABASE = {
+    url: '',        // https://xxxxxxxxxxxx.supabase.co
+    anonKey: '',    // eyJhbGciOi...
+    tabla: 'diagnosticos'
+  };
+
+  /* Permite apuntar a otro proyecto sin tocar el archivo: útil para probar
+     contra una base de pruebas desde la consola del navegador. */
+  try {
+    var guardado = global.localStorage.getItem('comeen.supabase');
+    if (guardado) {
+      var extra = JSON.parse(guardado);
+      if (extra && extra.url) { SUPABASE.url = extra.url; SUPABASE.anonKey = extra.anonKey; }
+    }
+  } catch (e) { /* sin localStorage: se usa la configuración de arriba */ }
+
+  SUPABASE.configurado = !!(SUPABASE.url && SUPABASE.anonKey);
+
+  global.COMEEN = global.COMEEN || {};
+  global.COMEEN.configSupabase = SUPABASE;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+
 /* ===== src/core/reglas.js ===== */
 /* ============================================================================
    core/reglas.js — Intérprete de condiciones
@@ -1977,28 +2025,243 @@ textarea.campo__control { resize: vertical; min-height: 88px; }
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
 
+/* ===== src/core/supabase.js ===== */
+/* ============================================================================
+   core/supabase.js — Cliente REST y sesión
+   ----------------------------------------------------------------------------
+   Habla directo con la API de Supabase por HTTP. No se usa la librería oficial
+   a propósito: son unas doscientas líneas contra unos cien kilobytes, y así la
+   aplicación sigue sin paso de compilación y sin dependencias externas.
+
+   Dos modos de acceso, que es toda la separación de permisos que necesita el
+   sistema:
+
+     sin sesión  → la llave 'anon'. Las políticas RLS solo le permiten INSERTAR.
+     con sesión  → el token del administrador. Puede leer, editar y borrar.
+
+   Quien diligencia la encuesta nunca inicia sesión. Quien consulta el panel,
+   siempre.
+   ========================================================================== */
+(function (global) {
+  'use strict';
+
+  var CLAVE_SESION = 'comeen.sesion';
+  var cfg = null;
+
+  function config() {
+    if (!cfg) cfg = global.COMEEN.configSupabase;
+    return cfg;
+  }
+
+  /* ── Sesión guardada ────────────────────────────────────────────────────── */
+  function leerSesion() {
+    try {
+      var crudo = global.localStorage.getItem(CLAVE_SESION);
+      return crudo ? JSON.parse(crudo) : null;
+    } catch (e) { return null; }
+  }
+
+  function escribirSesion(s) {
+    try {
+      if (s) global.localStorage.setItem(CLAVE_SESION, JSON.stringify(s));
+      else global.localStorage.removeItem(CLAVE_SESION);
+    } catch (e) { /* sin almacenamiento: la sesión dura lo que la pestaña */ }
+  }
+
+  var sesionMemoria = leerSesion();
+
+  function sesion() { return sesionMemoria; }
+  function haySesion() { return !!(sesionMemoria && sesionMemoria.access_token); }
+  function correo() { return sesionMemoria && sesionMemoria.user ? sesionMemoria.user.email : null; }
+
+  function guardarSesion(datos) {
+    if (!datos || !datos.access_token) return null;
+    sesionMemoria = {
+      access_token: datos.access_token,
+      refresh_token: datos.refresh_token,
+      expira: Date.now() + ((datos.expires_in || 3600) * 1000) - 60000, // 1 min de margen
+      user: datos.user ? { id: datos.user.id, email: datos.user.email } : null
+    };
+    escribirSesion(sesionMemoria);
+    return sesionMemoria;
+  }
+
+  function olvidarSesion() { sesionMemoria = null; escribirSesion(null); }
+
+  /* ── Peticiones ─────────────────────────────────────────────────────────── */
+  function cabeceras(extra) {
+    var h = {
+      'apikey': config().anonKey,
+      'Content-Type': 'application/json'
+    };
+    /* Con sesión manda el token del administrador; sin ella, la llave anónima
+       —y entonces el RLS solo deja insertar. */
+    h['Authorization'] = 'Bearer ' + (haySesion() ? sesionMemoria.access_token : config().anonKey);
+    if (extra) Object.keys(extra).forEach(function (k) { h[k] = extra[k]; });
+    return h;
+  }
+
+  function mensajeDeError(estado, cuerpo) {
+    if (estado === 401 || estado === 403) return 'La sesión no tiene permiso para esta operación. Vuelva a ingresar.';
+    if (estado === 409) return 'Ese diagnóstico ya existe en la base.';
+    if (estado === 0)   return 'Sin conexión con la base de datos. Lo que levante queda guardado en el dispositivo.';
+    var detalle = cuerpo && (cuerpo.message || cuerpo.error_description || cuerpo.error || cuerpo.hint);
+    return detalle ? String(detalle) : 'La base de datos respondió con un error (' + estado + ').';
+  }
+
+  function peticion(ruta, opciones) {
+    opciones = opciones || {};
+    return fetch(config().url + ruta, {
+      method: opciones.metodo || 'GET',
+      headers: cabeceras(opciones.cabeceras),
+      body: opciones.cuerpo ? JSON.stringify(opciones.cuerpo) : undefined
+    }).then(function (r) {
+      if (r.status === 204) return null;
+      return r.text().then(function (texto) {
+        var datos = null;
+        if (texto) { try { datos = JSON.parse(texto); } catch (e) { datos = { message: texto }; } }
+        if (!r.ok) {
+          var err = new Error(mensajeDeError(r.status, datos));
+          err.estado = r.status;
+          throw err;
+        }
+        return datos;
+      });
+    }, function () {
+      var err = new Error(mensajeDeError(0));
+      err.estado = 0;
+      throw err;
+    });
+  }
+
+  /* Renueva el token si está por vencer. Se llama antes de cada operación del
+     panel para que una jornada larga de trabajo no expulse al administrador. */
+  function asegurarSesion() {
+    if (!haySesion()) return Promise.resolve(null);
+    if (Date.now() < sesionMemoria.expira) return Promise.resolve(sesionMemoria);
+    var refresco = sesionMemoria.refresh_token;
+    if (!refresco) { olvidarSesion(); return Promise.resolve(null); }
+
+    return fetch(config().url + '/auth/v1/token?grant_type=refresh_token', {
+      method: 'POST',
+      headers: { 'apikey': config().anonKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: refresco })
+    }).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (datos) {
+        if (!datos) { olvidarSesion(); return null; }
+        return guardarSesion(datos);
+      })
+      .catch(function () { return sesionMemoria; });
+  }
+
+  /* ── Autenticación ──────────────────────────────────────────────────────── */
+  function iniciarSesion(email, clave) {
+    return fetch(config().url + '/auth/v1/token?grant_type=password', {
+      method: 'POST',
+      headers: { 'apikey': config().anonKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email, password: clave })
+    }).then(function (r) {
+      return r.text().then(function (texto) {
+        var datos = texto ? JSON.parse(texto) : null;
+        if (!r.ok) {
+          throw new Error(r.status === 400
+            ? 'Correo o contraseña incorrectos.'
+            : mensajeDeError(r.status, datos));
+        }
+        return guardarSesion(datos);
+      });
+    }, function () { throw new Error('No se pudo conectar para verificar el ingreso.'); });
+  }
+
+  function cerrarSesion() {
+    var previa = sesionMemoria;
+    olvidarSesion();
+    if (!previa) return Promise.resolve();
+    return fetch(config().url + '/auth/v1/logout', {
+      method: 'POST',
+      headers: { 'apikey': config().anonKey, 'Authorization': 'Bearer ' + previa.access_token }
+    }).catch(function () { /* la sesión local ya se borró: es lo que importa */ });
+  }
+
+  /* ── Tabla de diagnósticos ──────────────────────────────────────────────── */
+  function ruta(sufijo) { return '/rest/v1/' + config().tabla + (sufijo || ''); }
+
+  function insertar(fila) {
+    /* 'return=minimal' es indispensable: sin política de SELECT para anónimos,
+       pedir la fila de vuelta haría fallar una inserción que sí funcionó. */
+    return peticion(ruta(), {
+      metodo: 'POST',
+      cabeceras: { 'Prefer': 'return=minimal,resolution=merge-duplicates' },
+      cuerpo: fila
+    });
+  }
+
+  function listar() {
+    return asegurarSesion().then(function () {
+      return peticion(ruta('?select=*&order=creado.desc'));
+    });
+  }
+
+  function obtener(id) {
+    return asegurarSesion().then(function () {
+      return peticion(ruta('?id=eq.' + encodeURIComponent(id) + '&select=*&limit=1'));
+    }).then(function (filas) { return filas && filas.length ? filas[0] : null; });
+  }
+
+  function actualizar(id, fila) {
+    return asegurarSesion().then(function () {
+      return peticion(ruta('?id=eq.' + encodeURIComponent(id)), {
+        metodo: 'PATCH',
+        cabeceras: { 'Prefer': 'return=minimal' },
+        cuerpo: fila
+      });
+    });
+  }
+
+  function eliminar(id) {
+    return asegurarSesion().then(function () {
+      return peticion(ruta('?id=eq.' + encodeURIComponent(id)), {
+        metodo: 'DELETE',
+        cabeceras: { 'Prefer': 'return=minimal' }
+      });
+    });
+  }
+
+  global.COMEEN = global.COMEEN || {};
+  global.COMEEN.supabase = {
+    sesion: sesion, haySesion: haySesion, correo: correo,
+    iniciarSesion: iniciarSesion, cerrarSesion: cerrarSesion, asegurarSesion: asegurarSesion,
+    insertar: insertar, listar: listar, obtener: obtener, actualizar: actualizar, eliminar: eliminar
+  };
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+
 /* ===== src/core/almacenamiento.js ===== */
 /* ============================================================================
    core/almacenamiento.js — Capa de datos
    ----------------------------------------------------------------------------
-   Dos adaptadores tras una misma interfaz:
-
-     compartido → base de datos del artefacto publicado. Varias personas
-                  levantando negocios en la calle ven la misma información.
-     local      → localStorage del navegador. Funciona abriendo el archivo
-                  directamente, sin servidor ni conexión.
-
-   La interfaz elige adaptador al arrancar; el resto de la aplicación no sabe
+   Tres adaptadores tras una misma interfaz. El resto de la aplicación no sabe
    cuál está activo.
+
+     supabase   → base de datos real. Es el modo de producción.
+                  Sin sesión solo puede insertar (así lo permite el RLS);
+                  con sesión de administrador, leer, editar y borrar.
+     compartido → base del artefacto publicado, para uso interno.
+     local      → localStorage. Sin servidor y sin conexión.
+
+   COLA DE PENDIENTES. En la calle la señal se cae. Si una inserción falla, el
+   diagnóstico no se pierde: queda en el dispositivo y se reintenta solo. Por
+   eso 'guardar' nunca le dice al encuestador que perdió su trabajo.
    ========================================================================== */
 (function (global) {
   'use strict';
 
   var CLAVE_LOCAL = 'comeen.diagnosticos.v2';
   var CLAVE_BORRADOR = 'comeen.borrador.v2';
+  var CLAVE_PENDIENTES = 'comeen.pendientes.v2';
   var COLECCION = 'negocios';
 
-  /* ── Utilidades de localStorage tolerantes a fallo ─────────────────────── */
+  /* ── localStorage tolerante a fallo ─────────────────────────────────────── */
   function leerLocal(clave, porDefecto) {
     try {
       var crudo = global.localStorage.getItem(clave);
@@ -2010,7 +2273,71 @@ textarea.campo__control { resize: vertical; min-height: 88px; }
     catch (e) { return false; }
   }
 
-  /* ── Adaptador local ───────────────────────────────────────────────────── */
+  /* ── Traducción entre el registro de la app y la fila de la tabla ───────── */
+  /* Las columnas derivadas existen para filtrar y graficar en SQL sin abrir el
+     json. La verdad completa vive en 'datos': cuando el instrumento cambie, el
+     json absorbe la nueva forma sin migrar la tabla. */
+  function aFila(registro) {
+    var d = global.COMEEN.diagnostico.evaluar(registro);
+    var n = registro.negocio || {};
+    return {
+      id: registro.id,
+      creado: registro.creado,
+      actualizado: registro.actualizado,
+      version_instrumento: registro.versionInstrumento,
+      origen: registro.origen || 'publico',
+      negocio_nombre: n.nombre || 'Sin nombre',
+      categoria: global.COMEEN.diagnostico.textoCampo(n, 'categoria'),
+      municipio: n.municipio || null,
+      barrio: n.barrio || null,
+      nivel: d.nivel.id,
+      puntaje: d.puntaje,
+      pago: registro.pago || null,
+      estado: registro.estado || 'pendiente',
+      datos: registro
+    };
+  }
+
+  function deFila(fila) {
+    var r = fila.datos || {};
+    /* Las columnas que el panel edita mandan sobre lo que traiga el json:
+       si se cambió el estado por SQL, esa es la verdad. */
+    r.id = fila.id;
+    r.estado = fila.estado || r.estado || 'pendiente';
+    r.origen = fila.origen || r.origen || 'publico';
+    r.creado = fila.creado || r.creado;
+    r.actualizado = fila.actualizado || r.actualizado;
+    return r;
+  }
+
+  /* ── Cola de pendientes ─────────────────────────────────────────────────── */
+  function pendientes() { return leerLocal(CLAVE_PENDIENTES, []); }
+
+  function encolar(registro) {
+    var cola = pendientes().filter(function (r) { return r.id !== registro.id; });
+    cola.push(registro);
+    escribirLocal(CLAVE_PENDIENTES, cola);
+  }
+
+  function desencolar(id) {
+    escribirLocal(CLAVE_PENDIENTES, pendientes().filter(function (r) { return r.id !== id; }));
+  }
+
+  /* Reintenta la cola. Se llama al arrancar y cuando vuelve la conexión. */
+  function sincronizar() {
+    var cola = pendientes();
+    if (!cola.length) return Promise.resolve(0);
+    var enviados = 0;
+    return cola.reduce(function (previa, registro) {
+      return previa.then(function () {
+        return global.COMEEN.supabase.insertar(aFila(registro))
+          .then(function () { desencolar(registro.id); enviados++; })
+          .catch(function () { /* sigue pendiente; se reintenta después */ });
+      });
+    }, Promise.resolve()).then(function () { return enviados; });
+  }
+
+  /* ── Adaptador local ────────────────────────────────────────────────────── */
   function adaptadorLocal() {
     var oyentes = [];
     function todos() { return leerLocal(CLAVE_LOCAL, []); }
@@ -2019,10 +2346,10 @@ textarea.campo__control { resize: vertical; min-height: 88px; }
     return {
       modo: 'local',
       etiqueta: 'Este dispositivo',
+      puedeLeer: true,
       listar: function () { return Promise.resolve(todos()); },
       obtener: function (id) {
-        var r = todos().filter(function (x) { return x.id === id; })[0] || null;
-        return Promise.resolve(r);
+        return Promise.resolve(todos().filter(function (x) { return x.id === id; })[0] || null);
       },
       guardar: function (registro) {
         var lista = todos();
@@ -2048,11 +2375,76 @@ textarea.campo__control { resize: vertical; min-height: 88px; }
     };
   }
 
-  /* ── Adaptador compartido (capacidad db del artefacto) ─────────────────── */
+  /* ── Adaptador Supabase ─────────────────────────────────────────────────── */
+  function adaptadorSupabase() {
+    var S = global.COMEEN.supabase;
+
+    return {
+      modo: 'supabase',
+      etiqueta: 'Base de datos COMEEN',
+      /* Sin sesión el RLS no permite leer: el panel exige ingresar. */
+      get puedeLeer() { return S.haySesion(); },
+
+      listar: function () {
+        if (!S.haySesion()) return Promise.resolve([]);
+        return S.listar().then(function (filas) { return (filas || []).map(deFila); });
+      },
+
+      obtener: function (id) {
+        if (!S.haySesion()) return Promise.resolve(null);
+        return S.obtener(id).then(function (fila) { return fila ? deFila(fila) : null; });
+      },
+
+      guardar: function (registro) {
+        registro.actualizado = new Date().toISOString();
+        var fila = aFila(registro);
+
+        if (S.haySesion()) {
+          /* El administrador edita filas existentes: PATCH y, si no existía
+             todavía, se crea. */
+          return S.actualizar(registro.id, fila)
+            .then(function () { return registro; })
+            .catch(function (e) {
+              if (e.estado === 404 || e.estado === 406) return S.insertar(fila).then(function () { return registro; });
+              throw e;
+            });
+        }
+
+        /* Encuesta pública: insertar y nada más. Si falla, queda en cola —
+           nunca se le dice al encuestador que perdió el diagnóstico. */
+        return S.insertar(fila)
+          .then(function () { desencolar(registro.id); return registro; })
+          .catch(function () {
+            encolar(registro);
+            return registro;
+          });
+      },
+
+      eliminar: function (id) { return S.eliminar(id); },
+
+      /* Sin websockets: el panel refresca cada 45 segundos. Para el volumen de
+         un municipio es de sobra, y evita mantener una conexión abierta en un
+         celular en la calle. */
+      suscribir: function (fn) {
+        var vivo = true;
+        var self = this;
+        function tic() {
+          if (!vivo) return;
+          self.listar().then(function (lista) { if (vivo) fn(lista); }).catch(function () {});
+        }
+        tic();
+        var reloj = setInterval(tic, 45000);
+        return function () { vivo = false; clearInterval(reloj); };
+      }
+    };
+  }
+
+  /* ── Adaptador del artefacto publicado ──────────────────────────────────── */
   function adaptadorCompartido(db) {
     return {
       modo: 'compartido',
       etiqueta: 'Base compartida COMEEN',
+      puedeLeer: true,
       listar: function () {
         return db.collection(COLECCION).get().then(function (snap) {
           return snap.docs.map(function (d) { return d.data(); })
@@ -2060,9 +2452,7 @@ textarea.campo__control { resize: vertical; min-height: 88px; }
         });
       },
       obtener: function (id) {
-        return db.doc(COLECCION + '/' + id).get().then(function (s) {
-          return s.exists ? s.data() : null;
-        });
+        return db.doc(COLECCION + '/' + id).get().then(function (s) { return s.exists ? s.data() : null; });
       },
       guardar: function (registro) {
         registro.actualizado = new Date().toISOString();
@@ -2078,13 +2468,20 @@ textarea.campo__control { resize: vertical; min-height: 88px; }
     };
   }
 
-  /* Resuelve el adaptador disponible. Nunca falla: si no hay base compartida,
-     el trabajo de campo continúa en el dispositivo. */
+  /* Elige el adaptador disponible, en orden de preferencia. Nunca falla: si no
+     hay base de datos, el trabajo de campo continúa en el dispositivo. */
   function iniciar() {
-    var local = adaptadorLocal();
-    if (!global.claude || typeof global.claude.use !== 'function') {
-      return Promise.resolve(local);
+    if (global.COMEEN.configSupabase && global.COMEEN.configSupabase.configurado) {
+      var sb = adaptadorSupabase();
+      /* Reintenta en silencio lo que quedó pendiente de una jornada anterior. */
+      sincronizar().catch(function () {});
+      global.addEventListener('online', function () { sincronizar().catch(function () {}); });
+      return Promise.resolve(sb);
     }
+
+    var local = adaptadorLocal();
+    if (!global.claude || typeof global.claude.use !== 'function') return Promise.resolve(local);
+
     return global.claude.use('db')
       .then(function (db) { return db ? adaptadorCompartido(db) : local; })
       .catch(function () { return local; });
@@ -2098,7 +2495,15 @@ textarea.campo__control { resize: vertical; min-height: 88px; }
   };
 
   global.COMEEN = global.COMEEN || {};
-  global.COMEEN.almacenamiento = { iniciar: iniciar, borrador: borrador, CLAVE_LOCAL: CLAVE_LOCAL };
+  global.COMEEN.almacenamiento = {
+    iniciar: iniciar,
+    borrador: borrador,
+    sincronizar: sincronizar,
+    pendientes: pendientes,
+    aFila: aFila,
+    deFila: deFila,
+    CLAVE_LOCAL: CLAVE_LOCAL
+  };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
 
@@ -2916,12 +3321,14 @@ textarea.campo__control { resize: vertical; min-height: 88px; }
       contenedor.appendChild(cuerpo);
 
       contenedor.appendChild(el('div.pie-nav', null, [
+        /* En la encuesta pública no hay "Salir": no existe un panel al que
+           volver, y ofrecerlo solo confundiría al comerciante. */
         indice > 0 ? el('button.btn.btn--secundario', {
           type: 'button',
           onclick: function () { errores = []; indice--; guardarBorrador(); pintar(); global.scrollTo(0, 0); }
-        }, 'Atrás') : el('button.btn.btn--fantasma', {
+        }, 'Atrás') : (opciones.permiteSalir ? el('button.btn.btn--fantasma', {
           type: 'button', onclick: function () { opciones.alSalir && opciones.alSalir(); }
-        }, 'Salir'),
+        }, 'Salir') : null),
         el('button.btn.btn--principal', {
           type: 'button',
           onclick: function () {
@@ -3639,12 +4046,129 @@ textarea.campo__control { resize: vertical; min-height: 88px; }
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
 
+/* ===== src/ui/ingreso.js ===== */
+/* ============================================================================
+   ui/ingreso.js — Ingreso del administrador
+   ----------------------------------------------------------------------------
+   Solo protege el panel. La encuesta no pasa por aquí: quien la diligencia
+   nunca inicia sesión.
+
+   No hay pantalla de registro, y es a propósito: en Supabase el registro
+   público está desactivado y existe una sola cuenta. Así "administrador" no es
+   un rol guardado en una tabla, sino el simple hecho de tener sesión.
+   ========================================================================== */
+(function (global) {
+  'use strict';
+
+  var U = global.COMEEN.ui.util;
+  var el = U.el;
+
+  function pintar(contenedor, alEntrar) {
+    U.vaciar(contenedor);
+
+    var error = null;
+    var enviando = false;
+
+    function dibujar() {
+      U.vaciar(contenedor);
+
+      var correo = el('input.campo__control', {
+        id: 'ingreso-correo', type: 'email', autocomplete: 'username',
+        placeholder: 'correo@ejemplo.com', valor: recordado.correo || ''
+      });
+      var clave = el('input.campo__control', {
+        id: 'ingreso-clave', type: 'password', autocomplete: 'current-password'
+      });
+
+      function entrar(ev) {
+        if (ev) ev.preventDefault();
+        if (enviando) return;
+        if (!correo.value.trim() || !clave.value) {
+          error = 'Escriba el correo y la contraseña.';
+          dibujar();
+          return;
+        }
+        enviando = true;
+        error = null;
+        dibujar();
+
+        global.COMEEN.supabase.iniciarSesion(correo.value.trim(), clave.value)
+          .then(function () {
+            recordado.correo = correo.value.trim();
+            try { global.localStorage.setItem('comeen.ultimoCorreo', recordado.correo); } catch (e) {}
+            alEntrar();
+          })
+          .catch(function (e) {
+            enviando = false;
+            error = e.message || 'No se pudo ingresar.';
+            dibujar();
+          });
+      }
+
+      var formulario = el('form.grupo', { onsubmit: entrar }, [
+        el('div.campo', null, [
+          el('label.campo__etiqueta', { for: 'ingreso-correo', texto: 'Correo' }),
+          correo
+        ]),
+        el('div.campo', null, [
+          el('label.campo__etiqueta', { for: 'ingreso-clave', texto: 'Contraseña' }),
+          clave
+        ]),
+        error ? el('p.aviso-validacion', { role: 'alert', texto: error }) : null,
+        el('button.btn.btn--principal.btn--bloque', {
+          type: 'submit', disabled: enviando
+        }, enviando ? 'Entrando…' : 'Entrar al panel')
+      ]);
+
+      contenedor.appendChild(el('div.ingreso', null, [
+        el('div.resultado__cabecera', null, [
+          el('p.resultado__eyebrow', { texto: 'Panel COMEEN' }),
+          el('h1.resultado__negocio', { texto: 'Ingreso' }),
+          el('p.resultado__mensaje', {
+            texto: 'Aquí se consultan los diagnósticos levantados. Para aplicar la encuesta no hace falta ingresar.'
+          })
+        ]),
+        el('div.tarjeta', null, [formulario]),
+        el('div.acciones-fila', null, [
+          el('a.btn.btn--fantasma.btn--pequeno', { href: rutaEncuesta() }, '← Ir a la encuesta')
+        ])
+      ]));
+
+      if (!enviando) setTimeout(function () { (correo.value ? clave : correo).focus(); }, 30);
+    }
+
+    var recordado = { correo: null };
+    try { recordado.correo = global.localStorage.getItem('comeen.ultimoCorreo'); } catch (e) {}
+
+    dibujar();
+  }
+
+  function rutaEncuesta() {
+    var base = global.location.pathname.replace(/\/panel\/?$/, '/');
+    return base || '/';
+  }
+
+  global.COMEEN.ui.ingreso = { pintar: pintar };
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+
 /* ===== src/ui/app.js ===== */
 /* ============================================================================
-   ui/app.js — Armazón y navegación
+   ui/app.js — Armazón, ruteo y navegación
    ----------------------------------------------------------------------------
-   Une almacenamiento, asistente, resultado, panel y ficha. Es el único módulo
-   que conoce el estado de la aplicación completa.
+   Dos entradas, y esa es toda la separación de usuarios del sistema:
+
+     /         ENCUESTA.  Sin ingreso. La diligencia el comerciante, o quien
+                          esté en campo. Solo puede escribir.
+     /panel    PANEL.     Con ingreso. Consulta, edita y exporta.
+
+   Quien contesta la encuesta no ve el panel ni sabe que existe: en la ruta
+   pública no hay ningún botón que lleve allá. Al panel se llega escribiendo la
+   dirección — y lo que protege los datos no es esconder ese botón, sino el RLS
+   de la base, que sin sesión solo permite insertar.
+
+     ?f=campo   marca el diagnóstico como levantado en terreno, sin crear
+                usuarios ni roles para distinguirlo.
    ========================================================================== */
 (function (global) {
   'use strict';
@@ -3653,51 +4177,98 @@ textarea.campo__control { resize: vertical; min-height: 88px; }
   var el = U.el;
 
   var estado = {
-    vista: 'panel',        // panel | asistente | resultado | ficha
+    modo: 'encuesta',      // encuesta | panel
+    vista: 'panel',        // panel | asistente | resultado | ficha | ingreso
+    origen: 'publico',     // publico | campo
     registros: [],
     registroActivo: null,
+    indiceInicial: 0,
     almacen: null
   };
 
   var raiz, zonaBarra, zonaContenido;
 
+  function exigeIngreso() {
+    var cfg = global.COMEEN.configSupabase;
+    /* Sin base de datos configurada no hay a quién autenticar: la aplicación
+       trabaja contra el dispositivo y el panel queda abierto. Es el modo de
+       desarrollo y el de uso sin conexión. */
+    return !!(cfg && cfg.configurado);
+  }
+
+  function conSesion() {
+    return !exigeIngreso() || (global.COMEEN.supabase && global.COMEEN.supabase.haySesion());
+  }
+
+  /* ── Ruteo ──────────────────────────────────────────────────────────────── */
+  function leerRuta() {
+    var ruta = global.location.pathname || '';
+    var parametros = new URLSearchParams(global.location.search || '');
+    estado.modo = (/\/panel\/?$/.test(ruta) || parametros.get('vista') === 'panel') ? 'panel' : 'encuesta';
+    estado.origen = parametros.get('f') === 'campo' ? 'campo' : 'publico';
+  }
+
   /* ── Barra superior ─────────────────────────────────────────────────────── */
   function pintarBarra() {
     U.vaciar(zonaBarra);
-    var enPanel = estado.vista === 'panel';
+    var acciones = el('div.barra__acciones');
+
+    if (estado.modo === 'panel' && conSesion()) {
+      acciones.appendChild(el('button.barra__btn', {
+        type: 'button',
+        'aria-current': estado.vista === 'panel' ? 'page' : null,
+        onclick: irAlPanel
+      }, 'Panel'));
+      acciones.appendChild(el('button.barra__btn', {
+        type: 'button', onclick: function () { nuevoDiagnostico(); }
+      }, 'Nuevo'));
+      if (exigeIngreso()) {
+        acciones.appendChild(el('button.barra__btn', { type: 'button', onclick: salir }, 'Salir'));
+      }
+    }
 
     zonaBarra.appendChild(el('div.barra__vidrio', null, [
       el('div.barra__marca', null, [
         el('span.barra__sello', { 'aria-hidden': 'true' }, '🍽'),
         'COMEEN',
-        el('span.barra__sufijo', { texto: 'Diagnóstico digital' })
+        el('span.barra__sufijo', {
+          texto: estado.modo === 'panel' ? 'Panel' : 'Diagnóstico digital'
+        })
       ]),
-      el('div.barra__acciones', null, [
-        el('button.barra__btn', {
-          type: 'button',
-          'aria-current': enPanel ? 'page' : null,
-          onclick: irAlPanel
-        }, 'Panel'),
-        el('button.barra__btn', { type: 'button', onclick: nuevoDiagnostico }, 'Nuevo')
-      ])
+      acciones
     ]));
   }
 
   function avisoModo() {
     if (!estado.almacen) return null;
-    var local = estado.almacen.modo === 'local';
-    return el('div.aviso-modo' + (local ? '.aviso-modo--local' : ''), null, [
-      el('span.aviso-modo__punto'),
-      local ? 'Guardando en este dispositivo · ' + estado.registros.length + ' negocio(s)'
-            : 'Base compartida COMEEN · ' + estado.registros.length + ' negocio(s)'
+    var enCola = global.COMEEN.almacenamiento.pendientes().length;
+    var enDispositivo = estado.almacen.modo !== 'supabase';
+    var texto;
+
+    if (enCola) {
+      texto = enCola + ' diagnóstico(s) esperando conexión para subirse';
+    } else if (estado.almacen.modo === 'supabase') {
+      texto = 'Base de datos COMEEN · ' + estado.registros.length + ' negocio(s)';
+    } else if (estado.almacen.modo === 'compartido') {
+      texto = 'Base compartida COMEEN · ' + estado.registros.length + ' negocio(s)';
+    } else {
+      texto = 'Guardando en este dispositivo · ' + estado.registros.length + ' negocio(s)';
+    }
+
+    return el('div.aviso-modo' + (enDispositivo || enCola ? '.aviso-modo--local' : ''), null, [
+      el('span.aviso-modo__punto'), texto
     ]);
   }
 
   /* ── Datos ──────────────────────────────────────────────────────────────── */
   function recargar() {
+    if (!estado.almacen.puedeLeer) { estado.registros = []; return Promise.resolve([]); }
     return estado.almacen.listar().then(function (lista) {
       estado.registros = lista;
       return lista;
+    }).catch(function (e) {
+      U.mensaje(e.message || 'No se pudo leer la base de datos.');
+      return estado.registros;
     });
   }
 
@@ -3713,7 +4284,7 @@ textarea.campo__control { resize: vertical; min-height: 88px; }
 
   /* ── Navegación ─────────────────────────────────────────────────────────── */
   function irAlPanel() {
-    estado.vista = 'panel';
+    estado.vista = conSesion() ? 'panel' : 'ingreso';
     estado.registroActivo = null;
     pintar();
     global.scrollTo(0, 0);
@@ -3722,6 +4293,7 @@ textarea.campo__control { resize: vertical; min-height: 88px; }
   function nuevoDiagnostico(registroPrevio) {
     global.COMEEN.almacenamiento.borrador.limpiar();
     estado.registroActivo = global.COMEEN.diagnostico.nuevoRegistro();
+    estado.registroActivo.origen = estado.modo === 'panel' ? 'campo' : estado.origen;
     estado.indiceInicial = 0;
     /* Repetir diagnóstico: se conservan los datos del negocio, no las respuestas. */
     if (registroPrevio && registroPrevio.negocio) {
@@ -3734,8 +4306,6 @@ textarea.campo__control { resize: vertical; min-height: 88px; }
     global.scrollTo(0, 0);
   }
 
-  /* Retomar el cuestionario que quedó a medias. El borrador se anuncia en el
-     panel, a la vista, en lugar de aparecer como un diálogo al azar. */
   function continuarBorrador() {
     var borrador = global.COMEEN.almacenamiento.borrador.leer();
     if (!borrador || !borrador.registro) { U.mensaje('Ya no hay un diagnóstico a medias.'); pintar(); return; }
@@ -3763,14 +4333,22 @@ textarea.campo__control { resize: vertical; min-height: 88px; }
   function eliminar(id) {
     estado.almacen.eliminar(id)
       .then(recargar)
-      .then(function () { U.mensaje('Diagnóstico eliminado.'); irAlPanel(); });
+      .then(function () { U.mensaje('Diagnóstico eliminado.'); irAlPanel(); })
+      .catch(function (e) { U.mensaje(e.message || 'No se pudo eliminar.'); });
   }
 
-  /* Carga los casos ficticios de verificación como datos de ejemplo. Quedan
-     marcados para no confundirlos nunca con negocios reales. */
+  function salir() {
+    global.COMEEN.supabase.cerrarSesion().then(function () {
+      estado.registros = [];
+      estado.vista = 'ingreso';
+      pintar();
+      global.scrollTo(0, 0);
+    });
+  }
+
   function cargarEjemplos() {
     if (!global.COMEEN.casos) { U.mensaje('Los casos de ejemplo no están disponibles.'); return; }
-    var pendientes = global.COMEEN.casos.map(function (caso, i) {
+    var enviando = global.COMEEN.casos.map(function (caso, i) {
       var r = global.COMEEN.diagnostico.nuevoRegistro();
       r.id = 'ejemplo-' + (i + 1);
       Object.keys(caso.negocio).forEach(function (k) { r.negocio[k] = caso.negocio[k]; });
@@ -3779,11 +4357,12 @@ textarea.campo__control { resize: vertical; min-height: 88px; }
       r.brechas = caso.brechas;
       r.prioridades = caso.prioridades.slice();
       r.pago = caso.pago;
+      r.origen = 'ejemplo';
       r.esEjemplo = true;
       r.notas = caso.nota;
       return estado.almacen.guardar(r);
     });
-    Promise.all(pendientes)
+    Promise.all(enviando)
       .then(recargar)
       .then(function () { U.mensaje(global.COMEEN.casos.length + ' negocios de ejemplo cargados.'); pintar(); })
       .catch(function () { U.mensaje('No se pudieron cargar los ejemplos.'); });
@@ -3796,6 +4375,28 @@ textarea.campo__control { resize: vertical; min-height: 88px; }
       .then(function () { U.mensaje('Ejemplos eliminados.'); pintar(); });
   }
 
+  /* En la encuesta pública el comerciante ve su resultado y termina: no hay
+     panel al que volver, ni lista de otros negocios que pueda ver. */
+  function accionesEncuesta() {
+    return [
+      el('button.btn.btn--principal', {
+        type: 'button', onclick: function () { nuevoDiagnostico(); }
+      }, estado.origen === 'campo' ? 'Levantar otro negocio' : 'Empezar de nuevo')
+    ];
+  }
+
+  function accionesPanel() {
+    return [
+      el('button.btn.btn--principal', { type: 'button', onclick: irAlPanel }, 'Guardar y volver al panel'),
+      el('button.btn.btn--secundario', {
+        type: 'button', onclick: function () { abrirFicha(estado.registroActivo.id); }
+      }, 'Abrir la ficha'),
+      el('button.btn.btn--fantasma', {
+        type: 'button', onclick: function () { nuevoDiagnostico(); }
+      }, 'Levantar otro negocio')
+    ];
+  }
+
   /* ── Render ─────────────────────────────────────────────────────────────── */
   function pintar() {
     pintarBarra();
@@ -3804,19 +4405,29 @@ textarea.campo__control { resize: vertical; min-height: 88px; }
     /* Cada vista pide su propio ancho: el cuestionario angosto para leerse en
        el celular; el resultado y la ficha, anchos, para no encajonar la
        información en una columna estrecha. */
-    var anchos = { panel: '.capa--ancha', ficha: '.capa--ancha', resultado: '.capa--media', asistente: '.capa--angosta' };
+    var anchos = {
+      panel: '.capa--ancha', ficha: '.capa--ancha', resultado: '.capa--media',
+      asistente: '.capa--angosta', ingreso: '.capa--angosta'
+    };
     var capa = el('div.capa' + (anchos[estado.vista] || '.capa--angosta'));
     zonaContenido.appendChild(capa);
+
+    if (estado.vista === 'ingreso') {
+      global.COMEEN.ui.ingreso.pintar(capa, function () {
+        estado.vista = 'panel';
+        recargar().then(pintar);
+      });
+      return;
+    }
 
     if (estado.vista === 'asistente') {
       global.COMEEN.ui.asistente.crear(capa, {
         registro: estado.registroActivo,
         indiceInicial: estado.indiceInicial,
+        permiteSalir: estado.modo === 'panel',
         alSalir: function () {
-          /* No se pide confirmación: el avance ya quedó guardado en cada toque
-             y el panel ofrece retomarlo. */
-          U.mensaje('Su avance quedó guardado. Puede retomarlo desde el panel.');
-          irAlPanel();
+          U.mensaje('Su avance quedó guardado. Puede retomarlo cuando quiera.');
+          if (estado.modo === 'panel') irAlPanel(); else nuevoDiagnostico();
         },
         alTerminar: function (registro) {
           global.COMEEN.almacenamiento.borrador.limpiar();
@@ -3832,14 +4443,11 @@ textarea.campo__control { resize: vertical; min-height: 88px; }
     }
 
     if (estado.vista === 'resultado') {
-      global.COMEEN.ui.resultado.pintar(capa, estado.registroActivo, [
-        el('button.btn.btn--principal', { type: 'button', onclick: irAlPanel }, 'Guardar y volver al panel'),
-        el('button.btn.btn--secundario', {
-          type: 'button', onclick: function () { abrirFicha(estado.registroActivo.id); }
-        }, 'Abrir la ficha'),
-        el('button.btn.btn--fantasma', { type: 'button', onclick: function () { nuevoDiagnostico(); } }, 'Levantar otro negocio')
-      ]);
-      capa.insertBefore(avisoModo() || el('span'), capa.firstChild);
+      global.COMEEN.ui.resultado.pintar(
+        capa, estado.registroActivo,
+        estado.modo === 'panel' ? accionesPanel() : accionesEncuesta()
+      );
+      if (estado.modo === 'panel') capa.insertBefore(avisoModo() || el('span'), capa.firstChild);
       return;
     }
 
@@ -3871,6 +4479,8 @@ textarea.campo__control { resize: vertical; min-height: 88px; }
   /* ── Arranque ───────────────────────────────────────────────────────────── */
   function iniciar(nodoRaiz) {
     raiz = nodoRaiz;
+    leerRuta();
+
     zonaBarra = el('header.barra');
     zonaContenido = el('main');
     raiz.appendChild(zonaBarra);
@@ -3883,18 +4493,44 @@ textarea.campo__control { resize: vertical; min-height: 88px; }
 
     global.COMEEN.almacenamiento.iniciar().then(function (almacen) {
       estado.almacen = almacen;
-      /* En base compartida, los cambios de otras personas llegan solos. */
+
+      if (estado.modo === 'encuesta') {
+        /* La ruta pública entra directo al cuestionario: el comerciante no ve
+           una lista de negocios ajenos ni un panel. */
+        var borrador = global.COMEEN.almacenamiento.borrador.leer();
+        if (borrador && borrador.registro) {
+          estado.registroActivo = borrador.registro;
+          estado.indiceInicial = borrador.indice || 0;
+        } else {
+          estado.registroActivo = global.COMEEN.diagnostico.nuevoRegistro();
+          estado.registroActivo.origen = estado.origen;
+          estado.indiceInicial = 0;
+        }
+        estado.vista = 'asistente';
+        pintar();
+        return null;
+      }
+
+      estado.vista = conSesion() ? 'panel' : 'ingreso';
       if (almacen.modo === 'compartido') {
         almacen.suscribir(function (lista) {
           estado.registros = lista;
           if (estado.vista === 'panel') pintar();
         });
       }
-      return recargar();
-    }).then(pintar);
+      return recargar().then(pintar);
+    }).catch(function (e) {
+      U.vaciar(zonaContenido);
+      zonaContenido.appendChild(el('div.capa.capa--angosta', null, [
+        el('div.vacio', null, [
+          el('p.vacio__titulo', { texto: 'No se pudo iniciar la aplicación' }),
+          el('p', { texto: (e && e.message) ? e.message : 'Recargue la página e intente de nuevo.' })
+        ])
+      ]));
+    });
   }
 
-  global.COMEEN.ui.app = { iniciar: iniciar };
+  global.COMEEN.ui.app = { iniciar: iniciar, estado: estado };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
 

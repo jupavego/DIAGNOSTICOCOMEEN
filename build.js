@@ -20,11 +20,13 @@ const JS = [
   'src/config/instrumento.js',
   'src/config/niveles.js',
   'src/config/servicios.js',
+  'src/config/supabase.js',
   'src/core/reglas.js',
   'src/core/puntuacion.js',
   'src/core/clasificacion.js',
   'src/core/recomendacion.js',
   'src/core/diagnostico.js',
+  'src/core/supabase.js',
   'src/core/almacenamiento.js',
   'src/core/exportacion.js',
   'tests/casos.js',
@@ -33,6 +35,7 @@ const JS = [
   'src/ui/resultado.js',
   'src/ui/panel.js',
   'src/ui/ficha.js',
+  'src/ui/ingreso.js',
   'src/ui/app.js'
 ];
 

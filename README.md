@@ -55,6 +55,68 @@ La aplicación indica en pantalla en cuál de los dos está trabajando. El avanc
 de un cuestionario a medias siempre se guarda en el dispositivo y se puede
 retomar desde el panel.
 
+## Puesta en producción
+
+### Las dos entradas
+
+```
+diagnosticocomeen.vercel.app
+│
+├── /            Encuesta     sin ingreso   → solo puede INSERTAR
+│                el comerciante, o usted en campo
+│
+├── /?f=campo    Encuesta     sin ingreso   → igual, pero marca origen = 'campo'
+│
+└── /panel       Panel        con ingreso   → leer, editar, exportar, borrar
+                 solo usted
+```
+
+Quien contesta la encuesta no ve el panel ni sabe que existe: en la ruta
+pública no hay ningún botón que lleve allá. Y lo que protege los datos no es
+esconder ese botón, sino el RLS.
+
+### No hay tabla de roles, y es a propósito
+
+Con el registro público desactivado en Supabase y una sola cuenta creada,
+`authenticated` **es** el administrador. No hace falta columna `rol`, ni tabla
+de perfiles, ni lógica de permisos en la aplicación.
+
+El precio de esa simplicidad: **si se reactiva el registro público, cualquiera
+que se cree una cuenta queda como administrador.** Es el único punto donde el
+modelo se puede romper.
+
+### Pasos
+
+**1. Supabase** — crear proyecto y ejecutar `supabase/001_diagnosticos.sql`
+completo en el SQL Editor. Después, en el tablero:
+
+- `Authentication → Providers → Email` → **desactivar "Enable sign-ups"**
+- `Authentication → Users → Add user` → su correo y contraseña
+
+**2. Conectar la aplicación** — pegar `Project URL` y la llave `anon public`
+(`Project Settings → API`) en `src/config/supabase.js`.
+
+La llave `anon` está pensada para vivir en el navegador: no es un secreto. Lo
+que impide leer la base es que no existe política de `SELECT` para anónimos.
+La llave `service_role` nunca va en este repositorio.
+
+**3. Vercel** — importar el repositorio. No hay nada que compilar:
+*Framework Preset* en `Other`, sin *build command*, *output directory* en la
+raíz. El `vercel.json` ya trae las rutas y las cabeceras de seguridad.
+
+Cada `git push` a `main` despliega.
+
+### Mientras no haya base de datos
+
+Con `src/config/supabase.js` vacío la aplicación funciona igual, guardando en
+el dispositivo y con el panel abierto sin ingreso. Es el modo de desarrollo.
+
+### Si se cae la señal en la calle
+
+Un diagnóstico que no se pudo subir queda en una cola en el dispositivo y se
+reintenta solo cuando vuelve la conexión. La aplicación avisa cuántos hay
+esperando. Al encuestador nunca se le dice que perdió su trabajo.
+
 ## Estructura
 
 ```
@@ -63,10 +125,14 @@ form/
 ├── build.js                      empaqueta todo en un archivo
 ├── dist/comeen-diagnostico.html  archivo único publicable
 │
+├── vercel.json                   rutas y cabeceras de seguridad
+├── supabase/001_diagnosticos.sql esquema, índices y políticas RLS
+│
 ├── src/config/                   ← LO QUE SE EDITA PARA CAMBIAR EL INSTRUMENTO
 │   ├── instrumento.js            preguntas, canales, brechas, categorías, pagos
 │   ├── niveles.js                cortes de puntaje y reglas de coherencia
-│   └── servicios.js              catálogo de servicios y sus reglas de activación
+│   ├── servicios.js              catálogo de servicios y sus reglas de activación
+│   └── supabase.js               URL y llave pública del proyecto
 │
 ├── src/core/                     motor: no toca la interfaz
 │   ├── reglas.js                 intérprete de condiciones declarativas
@@ -74,11 +140,14 @@ form/
 │   ├── clasificacion.js          puntaje + coherencia → nivel
 │   ├── recomendacion.js          brechas → servicios
 │   ├── diagnostico.js            orquestador y modelo del registro
-│   ├── almacenamiento.js         adaptadores de datos
+│   ├── supabase.js               cliente REST y sesión, sin dependencias
+│   ├── almacenamiento.js         adaptadores de datos y cola de pendientes
 │   └── exportacion.js            CSV y Excel
 │
 ├── src/ui/                       interfaz: no calcula nada
-│   ├── util.js  asistente.js  resultado.js  panel.js  ficha.js  app.js
+│   ├── util.js  asistente.js  resultado.js  panel.js  ficha.js
+│   ├── ingreso.js                ingreso del administrador
+│   └── app.js                    armazón, ruteo y navegación
 │
 ├── src/styles/
 │   ├── tokens.css                colores, tipografía, espaciado
@@ -162,6 +231,7 @@ para poder reanalizar por fuera.
 | Requisitos de coherencia | `src/config/niveles.js` → `requisitos` |
 | Un servicio nuevo | `src/config/servicios.js` |
 | Colores y tipografía | `src/styles/tokens.css` |
+| Proyecto de Supabase | `src/config/supabase.js` |
 
 Al cambiar preguntas, subir `VERSION_INSTRUMENTO` en `instrumento.js`: queda
 guardada en cada diagnóstico y permite comparar mediciones hechas con
