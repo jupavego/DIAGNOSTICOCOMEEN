@@ -1,5 +1,4 @@
 {
-  "cleanUrls": true,
   "rewrites": [
     { "source": "/panel", "destination": "/index.html" },
     { "source": "/campo", "destination": "/index.html" }

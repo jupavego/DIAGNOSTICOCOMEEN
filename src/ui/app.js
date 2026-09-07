@@ -50,7 +50,9 @@
     var ruta = global.location.pathname || '';
     var parametros = new URLSearchParams(global.location.search || '');
     estado.modo = (/\/panel\/?$/.test(ruta) || parametros.get('vista') === 'panel') ? 'panel' : 'encuesta';
-    estado.origen = parametros.get('f') === 'campo' ? 'campo' : 'publico';
+    /* Dos formas de marcar terreno: la ruta /campo, más fácil de dictar en voz
+       alta, y ?f=campo, más fácil de pegar en un enlace. */
+    estado.origen = (parametros.get('f') === 'campo' || /\/campo\/?$/.test(ruta)) ? 'campo' : 'publico';
   }
 
   /* ── Barra superior ─────────────────────────────────────────────────────── */
