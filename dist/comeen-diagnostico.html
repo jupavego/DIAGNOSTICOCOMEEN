@@ -2992,12 +2992,20 @@ textarea.campo__control { resize: vertical; min-height: 88px; }
   }
 
   /* ── Isotipo COMEEN ─────────────────────────────────────────────────────
-     Flecha de crecimiento con brote: diagnóstico y negocio que crece.
+     Flecha de crecimiento con brotes: diagnóstico y negocio que crece.
+
+     DOS TALLAS, no una escalada. A 32 px los brotes medirían 4,5 px con un
+     filo de 0,8 px: eso deja de ser un dibujo y se vuelve suciedad. La versión
+     compacta suelta los brotes y engorda la flecha, que es lo que el icono
+     tiene que decir cuando solo hay 32 px para decirlo.
 
      Los colores NO van escritos en el SVG sino en clases, para que salgan de
      los tokens de marca. Así el isotipo no puede desincronizarse del resto de
-     la aplicación si algún día cambia el violeta o el naranja. */
-  function isotipo(tamano) {
+     la aplicación si algún día cambia el violeta o el naranja.
+
+     @param {number}  tamano   lado en px; sin valor, lo manda el CSS
+     @param {boolean} compacto versión para tallas pequeñas (barra, favicon) */
+  function isotipo(tamano, compacto) {
     var NS = 'http://www.w3.org/2000/svg';
     var svg = document.createElementNS(NS, 'svg');
     svg.setAttribute('viewBox', '0 0 100 100');
@@ -3013,7 +3021,8 @@ textarea.campo__control { resize: vertical; min-height: 88px; }
       return n;
     }
 
-    var trazo = { 'stroke-width': 6, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', fill: 'none' };
+    var trazo = { 'stroke-width': compacto ? 9 : 6, 'stroke-linecap': 'round',
+                  'stroke-linejoin': 'round', fill: 'none' };
     function con(base, extra) {
       var o = {};
       Object.keys(base).forEach(function (k) { o[k] = base[k]; });
@@ -3021,7 +3030,17 @@ textarea.campo__control { resize: vertical; min-height: 88px; }
       return o;
     }
 
-    pieza('circle', { cx: 50, cy: 50, r: 48, 'class': 'isotipo__fondo' });
+    /* El disco llena el cuadro en la versión compacta: a 32 px un margen de
+       2 unidades se traduce en medio píxel de aire desperdiciado. */
+    pieza('circle', { cx: 50, cy: 50, r: compacto ? 50 : 48, 'class': 'isotipo__fondo' });
+
+    if (compacto) {
+      /* Un quiebre menos: cuatro vértices en 20 px se leen como una mancha. */
+      pieza('path', con(trazo, { d: 'M24 66L45 45L59 59L78 32', 'class': 'isotipo__linea' }));
+      pieza('path', con(trazo, { d: 'M63 32H78V47', 'class': 'isotipo__linea' }));
+      return svg;
+    }
+
     pieza('path', con(trazo, { d: 'M20 68L42 44L58 60L82 28', 'class': 'isotipo__linea' }));
     pieza('path', con(trazo, { d: 'M66 28H82V44', 'class': 'isotipo__linea' }));
     pieza('path', { d: 'M44 40C38 37 36 43 40 47C44 51 50 45 50 40Z',
@@ -4532,7 +4551,7 @@ textarea.campo__control { resize: vertical; min-height: 88px; }
 
     zonaBarra.appendChild(el('div.barra__vidrio', null, [
       el('div.barra__marca', null, [
-        el('span.barra__sello', { 'aria-hidden': 'true' }, [U.isotipo()]),
+        el('span.barra__sello', { 'aria-hidden': 'true' }, [U.isotipo(null, true)]),
         'COMEEN',
         el('span.barra__sufijo', {
           texto: estado.modo === 'panel' ? 'Panel' : 'Diagnóstico digital'
