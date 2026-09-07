@@ -44,16 +44,17 @@ solo archivo.
 
 ## Dónde se guardan los datos
 
-La capa de datos (`src/core/almacenamiento.js`) elige sola entre dos modos:
+La capa de datos (`src/core/almacenamiento.js`) elige sola entre tres modos:
 
 | Modo | Cuándo | Qué implica |
 |---|---|---|
-| **Compartido** | En la app publicada | Varias personas levantan negocios y todas ven la misma información en vivo |
-| **Local** | Abriendo el archivo en el equipo | Los datos quedan en ese navegador; funciona sin conexión |
+| **Supabase** | `src/config/supabase.js` tiene URL y llave | Producción. Sin sesión solo escribe; con sesión de administrador, lee y edita |
+| **Compartido** | En el artefacto publicado | Uso interno: varias personas levantan negocios y ven lo mismo en vivo |
+| **Local** | Sin lo anterior | Los datos quedan en ese navegador; funciona sin conexión |
 
-La aplicación indica en pantalla en cuál de los dos está trabajando. El avance
-de un cuestionario a medias siempre se guarda en el dispositivo y se puede
-retomar desde el panel.
+La aplicación indica en pantalla en cuál está trabajando, y cuántos
+diagnósticos quedaron esperando conexión. El avance de un cuestionario a
+medias siempre se guarda en el dispositivo y se puede retomar.
 
 ## Puesta en producción
 
