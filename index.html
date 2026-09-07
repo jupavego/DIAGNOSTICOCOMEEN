@@ -48,6 +48,9 @@
   <script src="src/ui/ingreso.js"></script>
   <script src="src/ui/app.js"></script>
 
-  <script>COMEEN.ui.app.iniciar(document.getElementById('app'));</script>
+  <!-- El arranque va en archivo aparte: el CSP de producción no admite
+       código en línea, y debilitarlo no es una opción en una aplicación con
+       datos de contacto de negocios reales. -->
+  <script src="src/ui/arranque.js"></script>
 </body>
 </html>
