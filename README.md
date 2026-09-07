@@ -48,7 +48,7 @@ La capa de datos (`src/core/almacenamiento.js`) elige sola entre tres modos:
 
 | Modo | Cuándo | Qué implica |
 |---|---|---|
-| **Supabase** | `src/config/supabase.js` tiene URL y llave | Producción. Sin sesión solo escribe; con sesión de administrador, lee y edita |
+| **Supabase** | `src/config/conexion.js` tiene URL y llave | Producción. Sin sesión solo escribe; con sesión de administrador, lee y edita |
 | **Compartido** | En el artefacto publicado | Uso interno: varias personas levantan negocios y ven lo mismo en vivo |
 | **Local** | Sin lo anterior | Los datos quedan en ese navegador; funciona sin conexión |
 
@@ -95,7 +95,7 @@ completo en el SQL Editor. Después, en el tablero:
 - `Authentication → Users → Add user` → su correo y contraseña
 
 **2. Conectar la aplicación** — pegar `Project URL` y la llave `anon public`
-(`Project Settings → API`) en `src/config/supabase.js`.
+(`Project Settings → API`) en `src/config/conexion.js`.
 
 La llave `anon` está pensada para vivir en el navegador: no es un secreto. Lo
 que impide leer la base es que no existe política de `SELECT` para anónimos.
@@ -109,7 +109,7 @@ Cada `git push` a `main` despliega.
 
 ### Mientras no haya base de datos
 
-Con `src/config/supabase.js` vacío la aplicación funciona igual, guardando en
+Con `src/config/conexion.js` vacío la aplicación funciona igual, guardando en
 el dispositivo y con el panel abierto sin ingreso. Es el modo de desarrollo.
 
 ### Si se cae la señal en la calle
@@ -133,7 +133,7 @@ form/
 │   ├── instrumento.js            preguntas, canales, brechas, categorías, pagos
 │   ├── niveles.js                cortes de puntaje y reglas de coherencia
 │   ├── servicios.js              catálogo de servicios y sus reglas de activación
-│   └── supabase.js               URL y llave pública del proyecto
+│   └── conexion.js               URL y llave pública del proyecto
 │
 ├── src/core/                     motor: no toca la interfaz
 │   ├── reglas.js                 intérprete de condiciones declarativas
@@ -141,7 +141,7 @@ form/
 │   ├── clasificacion.js          puntaje + coherencia → nivel
 │   ├── recomendacion.js          brechas → servicios
 │   ├── diagnostico.js            orquestador y modelo del registro
-│   ├── supabase.js               cliente REST y sesión, sin dependencias
+│   ├── api-supabase.js           cliente REST y sesión, sin dependencias
 │   ├── almacenamiento.js         adaptadores de datos y cola de pendientes
 │   └── exportacion.js            CSV y Excel
 │
@@ -233,7 +233,7 @@ para poder reanalizar por fuera.
 | Requisitos de coherencia | `src/config/niveles.js` → `requisitos` |
 | Un servicio nuevo | `src/config/servicios.js` |
 | Colores y tipografía | `src/styles/tokens.css` |
-| Proyecto de Supabase | `src/config/supabase.js` |
+| Proyecto de Supabase | `src/config/conexion.js` |
 
 Al cambiar preguntas, subir `VERSION_INSTRUMENTO` en `instrumento.js`: queda
 guardada en cada diagnóstico y permite comparar mediciones hechas con

@@ -1550,9 +1550,12 @@ textarea.campo__control { resize: vertical; min-height: 88px; }
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
 
-/* ===== src/config/supabase.js ===== */
+/* ===== src/config/conexion.js ===== */
 /* ============================================================================
-   config/supabase.js — Conexión con la base de datos
+   config/conexion.js — Conexión con la base de datos
+   ----------------------------------------------------------------------------
+   ESTO ES JAVASCRIPT, NO SQL. El archivo que va en el SQL Editor de Supabase
+   es supabase/001_diagnosticos.sql, y es el único .sql del proyecto.
    ----------------------------------------------------------------------------
    Pegue aquí los dos valores del proyecto de Supabase:
      Project Settings → API → Project URL  y  anon public
@@ -1572,8 +1575,8 @@ textarea.campo__control { resize: vertical; min-height: 88px; }
   'use strict';
 
   var SUPABASE = {
-    url: '',        // https://xxxxxxxxxxxx.supabase.co
-    anonKey: '',    // eyJhbGciOi...
+    url: 'https://iiktbawvhceqzusbvkvx.supabase.co',
+    anonKey: '',    // ← pegar aquí la llave 'anon public' (Project Settings → API)
     tabla: 'diagnosticos'
   };
 
@@ -2048,9 +2051,12 @@ textarea.campo__control { resize: vertical; min-height: 88px; }
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
 
-/* ===== src/core/supabase.js ===== */
+/* ===== src/core/api-supabase.js ===== */
 /* ============================================================================
-   core/supabase.js — Cliente REST y sesión
+   core/api-supabase.js — Cliente REST y sesión
+   ----------------------------------------------------------------------------
+   ESTO ES JAVASCRIPT, NO SQL. El archivo que va en el SQL Editor de Supabase
+   es supabase/001_diagnosticos.sql.
    ----------------------------------------------------------------------------
    Habla directo con la API de Supabase por HTTP. No se usa la librería oficial
    a propósito: son unas doscientas líneas contra unos cien kilobytes, y así la

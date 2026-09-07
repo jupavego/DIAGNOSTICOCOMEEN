@@ -1,5 +1,8 @@
 /* ============================================================================
-   config/supabase.js — Conexión con la base de datos
+   config/conexion.js — Conexión con la base de datos
+   ----------------------------------------------------------------------------
+   ESTO ES JAVASCRIPT, NO SQL. El archivo que va en el SQL Editor de Supabase
+   es supabase/001_diagnosticos.sql, y es el único .sql del proyecto.
    ----------------------------------------------------------------------------
    Pegue aquí los dos valores del proyecto de Supabase:
      Project Settings → API → Project URL  y  anon public
@@ -19,8 +22,8 @@
   'use strict';
 
   var SUPABASE = {
-    url: '',        // https://xxxxxxxxxxxx.supabase.co
-    anonKey: '',    // eyJhbGciOi...
+    url: 'https://iiktbawvhceqzusbvkvx.supabase.co',
+    anonKey: '',    // ← pegar aquí la llave 'anon public' (Project Settings → API)
     tabla: 'diagnosticos'
   };
 

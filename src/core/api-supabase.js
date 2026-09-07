@@ -1,5 +1,8 @@
 /* ============================================================================
-   core/supabase.js — Cliente REST y sesión
+   core/api-supabase.js — Cliente REST y sesión
+   ----------------------------------------------------------------------------
+   ESTO ES JAVASCRIPT, NO SQL. El archivo que va en el SQL Editor de Supabase
+   es supabase/001_diagnosticos.sql.
    ----------------------------------------------------------------------------
    Habla directo con la API de Supabase por HTTP. No se usa la librería oficial
    a propósito: son unas doscientas líneas contra unos cien kilobytes, y así la
