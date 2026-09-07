@@ -16,27 +16,52 @@ body {
 }
 
 /* ── Hexágonos dispersos ──────────────────────────────────────────────────
-   Decoración de fondo: hexágonos grandes, de tamaños y giros distintos,
-   colocados uno por uno. NO es un teselado — no hay retícula que seguir, y
-   la franja central queda despejada porque ahí vive el contenido.
+   La composición vive en ui/fondo.js, no aquí: como imagen de fondo no se
+   podría animar el contorno de cada hexágono por separado.
 
-   Los contornos alternan el violeta institucional y el naranja de marca, con
-   opacidades bajas y variadas: eso es lo que hace que se lean como composición
-   y no como textura repetida.
+   Dos movimientos, los dos deliberadamente lentos. La capa entera describe un
+   círculo de 20 px cada cuatro minutos —no se percibe mirando, se percibe al
+   volver a mirar— y un reflejo recorre el perímetro de cada hexágono en quince
+   segundos.
 
-   Va en una capa fija detrás de todo, en SVG en línea: sin peticiones de red
-   ni imágenes que cargar. Es decoración pura — no aporta información ni
-   contraste, y todo el texto vive sobre superficies opacas. */
-body::before {
-  content: '';
+   La capa se dibuja más grande que la ventana para que la órbita nunca deje
+   ver un borde. No recibe clics y se apaga entera con prefers-reduced-motion. */
+.fondo-panal {
   position: fixed;
-  inset: 0;
+  inset: -6%;
   z-index: 0;
   pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%221600%22 height=%221040%22 viewBox=%220 0 1600 1040%22 preserveAspectRatio=%22xMidYMid slice%22%3E%3Cpath d=%22M260.5 141.2L166.9 260.9L16.4 239.8L-40.5 98.8L53.1 -20.9L203.6 0.2Z%22 fill=%22none%22 stroke=%22%235e49d6%22 stroke-opacity=%220.17%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M405.1 24.8L378.7 117.1L285.5 140.3L218.9 71.2L245.3 -21.1L338.5 -44.3Z%22 fill=%22%23ff6a14%22 fill-opacity=%220.030%22/%3E%3Cpath d=%22M405.1 24.8L378.7 117.1L285.5 140.3L218.9 71.2L245.3 -21.1L338.5 -44.3Z%22 fill=%22none%22 stroke=%22%23ff6a14%22 stroke-opacity=%220.20%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M148.6 470.1L61.5 540.6L-43.0 500.5L-60.6 389.9L26.5 319.4L131.0 359.5Z%22 fill=%22none%22 stroke=%22%23ff6a14%22 stroke-opacity=%220.11%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M403.1 548.4L334.7 701.9L167.7 719.5L68.9 583.6L137.3 430.1L304.3 412.5Z%22 fill=%22none%22 stroke=%22%235e49d6%22 stroke-opacity=%220.09%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M831.8 49.3L751.7 141.4L632.0 118.1L592.2 2.7L672.3 -89.4L792.0 -66.1Z%22 fill=%22none%22 stroke=%22%235e49d6%22 stroke-opacity=%220.07%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M1070.7 -16.1L1055.4 70.6L972.7 100.7L905.3 44.1L920.6 -42.6L1003.3 -72.7Z%22 fill=%22none%22 stroke=%22%23ff6a14%22 stroke-opacity=%220.08%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M1662.2 144.2L1545.8 273.5L1375.6 237.3L1321.8 71.8L1438.2 -57.5L1608.4 -21.3Z%22 fill=%22%235e49d6%22 fill-opacity=%220.035%22/%3E%3Cpath d=%22M1662.2 144.2L1545.8 273.5L1375.6 237.3L1321.8 71.8L1438.2 -57.5L1608.4 -21.3Z%22 fill=%22none%22 stroke=%22%235e49d6%22 stroke-opacity=%220.16%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M1396.9 225.9L1375.3 327.6L1276.4 359.7L1199.1 290.1L1220.7 188.4L1319.6 156.3Z%22 fill=%22none%22 stroke=%22%23ff6a14%22 stroke-opacity=%220.19%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M1693.5 487.2L1620.1 592.0L1492.6 580.9L1438.5 464.8L1511.9 360.0L1639.4 371.1Z%22 fill=%22none%22 stroke=%22%23ff6a14%22 stroke-opacity=%220.10%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M1531.8 642.3L1481.1 781.4L1335.4 807.1L1240.2 693.7L1290.9 554.6L1436.6 528.9Z%22 fill=%22none%22 stroke=%22%235e49d6%22 stroke-opacity=%220.12%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M113.7 708.9L79.0 783.2L-2.7 790.3L-49.7 723.1L-15.0 648.8L66.7 641.7Z%22 fill=%22none%22 stroke=%22%23ff6a14%22 stroke-opacity=%220.14%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M284.9 898.5L241.0 1033.5L102.1 1063.1L7.1 957.5L51.0 822.5L189.9 792.9Z%22 fill=%22%235e49d6%22 fill-opacity=%220.030%22/%3E%3Cpath d=%22M284.9 898.5L241.0 1033.5L102.1 1063.1L7.1 957.5L51.0 822.5L189.9 792.9Z%22 fill=%22none%22 stroke=%22%235e49d6%22 stroke-opacity=%220.14%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M518.2 1043.0L447.7 1111.1L353.5 1084.1L329.8 989.0L400.3 920.9L494.5 947.9Z%22 fill=%22none%22 stroke=%22%23ff6a14%22 stroke-opacity=%220.13%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M964.1 1061.9L872.4 1156.9L744.3 1125.0L707.9 998.1L799.6 903.1L927.7 935.0Z%22 fill=%22none%22 stroke=%22%235e49d6%22 stroke-opacity=%220.08%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M1308.4 949.5L1247.7 1099.7L1087.3 1122.2L987.6 994.5L1048.3 844.3L1208.7 821.8Z%22 fill=%22none%22 stroke=%22%23ff6a14%22 stroke-opacity=%220.10%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M1631.8 948.0L1543.6 1016.9L1439.7 975.0L1424.2 864.0L1512.4 795.1L1616.3 837.0Z%22 fill=%22none%22 stroke=%22%235e49d6%22 stroke-opacity=%220.15%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E");
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  animation: panal-orbita 240s linear infinite;
+  will-change: transform;
+}
+
+/* Ocho pasos en vez de cuatro: con cuatro el recorrido se lee como un rombo. */
+@keyframes panal-orbita {
+  0%     { transform: translate(0, -20px); }
+  12.5%  { transform: translate(14px, -14px); }
+  25%    { transform: translate(20px, 0); }
+  37.5%  { transform: translate(14px, 14px); }
+  50%    { transform: translate(0, 20px); }
+  62.5%  { transform: translate(-14px, 14px); }
+  75%    { transform: translate(-20px, 0); }
+  87.5%  { transform: translate(-14px, -14px); }
+  100%   { transform: translate(0, -20px); }
+}
+
+/* El destello es un tramo corto del contorno que se desplaza por él. El
+   perímetro está normalizado a 1000 unidades con pathLength, así que un mismo
+   recorrido sirve para hexágonos de cualquier tamaño. */
+.fondo-panal__brillo {
+  stroke-opacity: 0;
+  animation: panal-reflejo 15s linear infinite;
+}
+
+@keyframes panal-reflejo {
+  0%   { stroke-dashoffset: 0;     stroke-opacity: 0; }
+  6%   {                           stroke-opacity: .38; }
+  60%  {                           stroke-opacity: .38; }
+  70%  { stroke-dashoffset: -1000; stroke-opacity: 0; }
+  100% { stroke-dashoffset: -1000; stroke-opacity: 0; }
 }
 
 /* Halo violeta muy tenue en el borde superior. */
@@ -50,30 +75,15 @@ body::after {
   background: radial-gradient(120% 100% at 50% 0%, rgba(94, 73, 214, .09) 0%, rgba(94, 73, 214, 0) 70%);
 }
 
-/* El contenido va por encima de las dos capas decorativas. */
+/* El contenido va por encima de las capas decorativas. */
 #app { position: relative; z-index: 1; }
 
-/* La cabecera de resultado lleva su propia composición, en blanco y naranja
-   claro sobre el violeta de marca. */
-.resultado__cabecera {
-  background-image:
-    url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22900%22 height=%22440%22 viewBox=%220 0 900 440%22 preserveAspectRatio=%22xMidYMid slice%22%3E%3Cpath d=%22M973.0 41.3L930.3 172.6L795.4 201.2L703.0 98.7L745.7 -32.6L880.6 -61.2Z%22 fill=%22%23ffffff%22 fill-opacity=%220.050%22/%3E%3Cpath d=%22M973.0 41.3L930.3 172.6L795.4 201.2L703.0 98.7L745.7 -32.6L880.6 -61.2Z%22 fill=%22none%22 stroke=%22%23ffffff%22 stroke-opacity=%220.15%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M845.8 401.8L768.1 476.8L664.3 447.0L638.2 342.2L715.9 267.2L819.7 297.0Z%22 fill=%22none%22 stroke=%22%23ff9a3d%22 stroke-opacity=%220.32%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M986.2 300.8L912.7 362.5L822.5 329.7L805.8 235.2L879.3 173.5L969.5 206.3Z%22 fill=%22none%22 stroke=%22%23ff9a3d%22 stroke-opacity=%220.24%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M734.8 434.7L688.3 549.7L565.5 567.0L489.2 469.3L535.7 354.3L658.5 337.0Z%22 fill=%22none%22 stroke=%22%23ffffff%22 stroke-opacity=%220.11%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M142.2 52.1L67.7 141.0L-46.6 120.9L-86.2 11.9L-11.7 -77.0L102.6 -56.9Z%22 fill=%22none%22 stroke=%22%23ffffff%22 stroke-opacity=%220.13%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M176.7 404.8L156.4 486.4L75.7 509.5L15.3 451.2L35.6 369.6L116.3 346.5Z%22 fill=%22none%22 stroke=%22%23ffffff%22 stroke-opacity=%220.12%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E"),
-    var(--hero);
-  background-size: cover, auto;
-  background-repeat: no-repeat, no-repeat;
-  background-position: center, center;
-}
+/* La cabecera de resultado conserva su propio panal como imagen de fondo: es
+   una banda pequeña y estática, no necesita animarse. */
 
-/* En celular el contenido ocupa casi todo el ancho y 'cover' recortaría justo
-   la franja central, que está despejada a propósito: el fondo se vería vacío.
-   Por eso hay una composición vertical propia, apoyada en los bordes. */
-@media (max-width: 760px) {
-  body::before { background-image: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22760%22 height=%221500%22 viewBox=%220 0 760 1500%22 preserveAspectRatio=%22xMidYMid slice%22%3E%3Cpath d=%22M116.3 131.6L29.5 238.8L-106.8 217.2L-156.3 88.4L-69.5 -18.8L66.8 2.8Z%22 fill=%22%235e49d6%22 fill-opacity=%220.030%22/%3E%3Cpath d=%22M116.3 131.6L29.5 238.8L-106.8 217.2L-156.3 88.4L-69.5 -18.8L66.8 2.8Z%22 fill=%22none%22 stroke=%22%235e49d6%22 stroke-opacity=%220.17%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M284.9 6.2L261.1 95.1L172.2 118.9L107.1 53.8L130.9 -35.1L219.8 -58.9Z%22 fill=%22none%22 stroke=%22%23ff6a14%22 stroke-opacity=%220.20%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M922.7 211.2L822.4 322.7L675.6 291.5L629.3 148.8L729.6 37.3L876.4 68.5Z%22 fill=%22none%22 stroke=%22%235e49d6%22 stroke-opacity=%220.15%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M733.2 341.7L712.8 437.6L619.6 467.9L546.8 402.3L567.2 306.4L660.4 276.1Z%22 fill=%22none%22 stroke=%22%23ff6a14%22 stroke-opacity=%220.18%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M80.8 511.0L-11.2 588.2L-123.9 547.1L-144.8 429.0L-52.8 351.8L59.9 392.9Z%22 fill=%22none%22 stroke=%22%23ff6a14%22 stroke-opacity=%220.12%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M927.5 621.5L851.8 729.6L720.3 718.1L664.5 598.5L740.2 490.4L871.7 501.9Z%22 fill=%22none%22 stroke=%22%235e49d6%22 stroke-opacity=%220.10%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M138.4 741.9L102.8 839.7L0.4 857.7L-66.4 778.1L-30.8 680.3L71.6 662.3Z%22 fill=%22none%22 stroke=%22%235e49d6%22 stroke-opacity=%220.13%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M865.7 935.3L764.2 1040.3L622.6 1005.0L582.3 864.7L683.8 759.7L825.4 795.0Z%22 fill=%22%23ff6a14%22 fill-opacity=%220.025%22/%3E%3Cpath d=%22M865.7 935.3L764.2 1040.3L622.6 1005.0L582.3 864.7L683.8 759.7L825.4 795.0Z%22 fill=%22none%22 stroke=%22%23ff6a14%22 stroke-opacity=%220.11%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M117.0 1064.4L67.0 1182.2L-60.0 1197.8L-137.0 1095.6L-87.0 977.8L40.0 962.2Z%22 fill=%22none%22 stroke=%22%23ff6a14%22 stroke-opacity=%220.14%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M789.0 1266.0L713.4 1325.1L624.4 1289.1L611.0 1194.0L686.6 1134.9L775.6 1170.9Z%22 fill=%22none%22 stroke=%22%235e49d6%22 stroke-opacity=%220.16%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M316.9 1300.9L273.7 1434.0L136.7 1463.1L43.1 1359.1L86.3 1226.0L223.3 1196.9Z%22 fill=%22none%22 stroke=%22%235e49d6%22 stroke-opacity=%220.12%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M575.7 1510.3L496.6 1586.7L390.9 1556.4L364.3 1449.7L443.4 1373.3L549.1 1403.6Z%22 fill=%22none%22 stroke=%22%23ff6a14%22 stroke-opacity=%220.12%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E"); }
-  .resultado__cabecera {
-    background-image:
-      url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22420%22 height=%22560%22 viewBox=%220 0 420 560%22 preserveAspectRatio=%22xMidYMid slice%22%3E%3Cpath d=%22M507.4 67.5L471.0 179.7L355.5 204.2L276.6 116.5L313.0 4.3L428.5 -20.2Z%22 fill=%22%23ffffff%22 fill-opacity=%220.045%22/%3E%3Cpath d=%22M507.4 67.5L471.0 179.7L355.5 204.2L276.6 116.5L313.0 4.3L428.5 -20.2Z%22 fill=%22none%22 stroke=%22%23ffffff%22 stroke-opacity=%220.15%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M456.0 448.7L381.2 520.9L281.2 492.2L256.0 391.3L330.8 319.1L430.8 347.8Z%22 fill=%22none%22 stroke=%22%23ff9a3d%22 stroke-opacity=%220.30%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M504.8 315.4L438.9 370.7L358.1 341.3L343.2 256.6L409.1 201.3L489.9 230.7Z%22 fill=%22none%22 stroke=%22%23ff9a3d%22 stroke-opacity=%220.22%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M122.9 496.4L81.0 600.3L-30.0 615.8L-98.9 527.6L-57.0 423.7L54.0 408.2Z%22 fill=%22none%22 stroke=%22%23ffffff%22 stroke-opacity=%220.11%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M74.6 52.0L15.5 122.5L-75.1 106.5L-106.6 20.0L-47.5 -50.5L43.1 -34.5Z%22 fill=%22none%22 stroke=%22%23ffffff%22 stroke-opacity=%220.12%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E"),
-      var(--hero);
-  }
+@media (prefers-reduced-motion: reduce) {
+  .fondo-panal { animation: none; }
+  .fondo-panal__brillo { animation: none; display: none; }
 }
 
 /* ── Barra superior: la píldora de cristal del directorio ───────────────── */
@@ -494,6 +504,9 @@ textarea.campo__control { resize: vertical; min-height: 88px; }
 /* ── Ficha de resultado ─────────────────────────────────────────────────── */
 .resultado { display: flex; flex-direction: column; gap: var(--e-5); }
 
+/* La cabecera lleva su propia composición de hexágonos, en blanco y naranja
+   claro sobre el violeta de marca. Aquí sí como imagen de fondo: es una banda
+   pequeña, estática, y no necesita animarse. */
 .resultado__cabecera {
   border-radius: var(--radio-xl);
   padding: var(--e-6);
@@ -501,6 +514,16 @@ textarea.campo__control { resize: vertical; min-height: 88px; }
   box-shadow: var(--sombra-lg);
   position: relative;
   overflow: hidden;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22900%22 height=%22440%22 viewBox=%220 0 900 440%22 preserveAspectRatio=%22xMidYMid slice%22%3E%3Cpath d=%22M973.0 41.3L930.3 172.6L795.4 201.2L703.0 98.7L745.7 -32.6L880.6 -61.2Z%22 fill=%22%23ffffff%22 fill-opacity=%220.050%22/%3E%3Cpath d=%22M973.0 41.3L930.3 172.6L795.4 201.2L703.0 98.7L745.7 -32.6L880.6 -61.2Z%22 fill=%22none%22 stroke=%22%23ffffff%22 stroke-opacity=%220.15%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M845.8 401.8L768.1 476.8L664.3 447.0L638.2 342.2L715.9 267.2L819.7 297.0Z%22 fill=%22none%22 stroke=%22%23ff9a3d%22 stroke-opacity=%220.32%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M986.2 300.8L912.7 362.5L822.5 329.7L805.8 235.2L879.3 173.5L969.5 206.3Z%22 fill=%22none%22 stroke=%22%23ff9a3d%22 stroke-opacity=%220.24%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M734.8 434.7L688.3 549.7L565.5 567.0L489.2 469.3L535.7 354.3L658.5 337.0Z%22 fill=%22none%22 stroke=%22%23ffffff%22 stroke-opacity=%220.11%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M142.2 52.1L67.7 141.0L-46.6 120.9L-86.2 11.9L-11.7 -77.0L102.6 -56.9Z%22 fill=%22none%22 stroke=%22%23ffffff%22 stroke-opacity=%220.13%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M176.7 404.8L156.4 486.4L75.7 509.5L15.3 451.2L35.6 369.6L116.3 346.5Z%22 fill=%22none%22 stroke=%22%23ffffff%22 stroke-opacity=%220.12%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E"), var(--hero);
+  background-size: cover, auto;
+  background-repeat: no-repeat, no-repeat;
+  background-position: center, center;
+}
+
+@media (max-width: 760px) {
+  .resultado__cabecera {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22420%22 height=%22560%22 viewBox=%220 0 420 560%22 preserveAspectRatio=%22xMidYMid slice%22%3E%3Cpath d=%22M507.4 67.5L471.0 179.7L355.5 204.2L276.6 116.5L313.0 4.3L428.5 -20.2Z%22 fill=%22%23ffffff%22 fill-opacity=%220.045%22/%3E%3Cpath d=%22M507.4 67.5L471.0 179.7L355.5 204.2L276.6 116.5L313.0 4.3L428.5 -20.2Z%22 fill=%22none%22 stroke=%22%23ffffff%22 stroke-opacity=%220.15%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M456.0 448.7L381.2 520.9L281.2 492.2L256.0 391.3L330.8 319.1L430.8 347.8Z%22 fill=%22none%22 stroke=%22%23ff9a3d%22 stroke-opacity=%220.30%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M504.8 315.4L438.9 370.7L358.1 341.3L343.2 256.6L409.1 201.3L489.9 230.7Z%22 fill=%22none%22 stroke=%22%23ff9a3d%22 stroke-opacity=%220.22%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M122.9 496.4L81.0 600.3L-30.0 615.8L-98.9 527.6L-57.0 423.7L54.0 408.2Z%22 fill=%22none%22 stroke=%22%23ffffff%22 stroke-opacity=%220.11%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M74.6 52.0L15.5 122.5L-75.1 106.5L-106.6 20.0L-47.5 -50.5L43.1 -34.5Z%22 fill=%22none%22 stroke=%22%23ffffff%22 stroke-opacity=%220.12%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E"), var(--hero);
+  }
 }
 .resultado__cabecera::after {
   content: '';

@@ -147,6 +147,7 @@ form/
 │
 ├── src/ui/                       interfaz: no calcula nada
 │   ├── util.js  asistente.js  resultado.js  panel.js  ficha.js
+│   ├── fondo.js                  hexágonos decorativos y sus dos animaciones
 │   ├── ingreso.js                ingreso del administrador
 │   └── app.js                    armazón, ruteo y navegación
 │
@@ -252,6 +253,13 @@ Tomado del sistema de *Come en Girardota* (`directorio-girardota v2`):
 violeta corporativo `#5e49d6`, naranja de marca `#ff6a14`, Poppins para títulos
 y Manrope para texto. Tema claro comprometido: la aplicación se ve igual en
 cualquier dispositivo, tenga o no modo oscuro el sistema.
+
+El fondo son hexágonos dispersos, en SVG dentro del documento (`src/ui/fondo.js`)
+y no como imagen de fondo: hace falta poder animar el contorno de cada uno por
+separado. Se mueven de dos maneras, las dos lentas a propósito — la capa entera
+describe un círculo de 20 px cada 4 minutos, y un reflejo recorre el perímetro
+de cada hexágono en 15 segundos, con los arranques escalonados para que nunca
+destellen todos a la vez. Todo se apaga con `prefers-reduced-motion`.
 
 ## Lo que todavía no hace
 

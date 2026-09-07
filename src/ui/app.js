@@ -326,6 +326,10 @@
     raiz = nodoRaiz;
     leerRuta();
 
+    /* Capa decorativa: va fuera de #app, detrás de todo, y no vuelve a
+       tocarse mientras la aplicación se repinta. */
+    global.COMEEN.ui.fondo.crear(document.body);
+
     zonaBarra = el('header.barra');
     zonaContenido = el('main');
     raiz.appendChild(zonaBarra);

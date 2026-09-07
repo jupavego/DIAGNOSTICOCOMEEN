@@ -31,6 +31,7 @@ const JS = [
   'src/core/exportacion.js',
   'tests/casos.js',
   'src/ui/util.js',
+  'src/ui/fondo.js',
   'src/ui/asistente.js',
   'src/ui/resultado.js',
   'src/ui/panel.js',
