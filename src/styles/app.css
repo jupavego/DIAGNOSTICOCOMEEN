@@ -130,9 +130,8 @@ body::after {
    Los colores salen de los tokens, no del SVG, para que la marca no pueda
    desincronizarse del resto de la aplicación. */
 .isotipo { display: block; }
-.isotipo__fondo  { fill: var(--brand-surface); }
+.isotipo__fondo  { fill: var(--acento); }
 .isotipo__linea  { stroke: var(--brand); }
-.isotipo__punto  { fill: var(--acento); }
 .isotipo__brote  { fill: var(--superficie); stroke: var(--brand); }
 
 .barra__sello {
@@ -144,11 +143,6 @@ body::after {
 }
 .barra__sello .isotipo { width: 32px; height: 32px; }
 
-/* Sobre el violeta de la barra, el isotipo necesita su propio fondo claro
-   para no perderse: el círculo de marca ya no contrasta ahí. */
-.barra__sello .isotipo__fondo { fill: #ffffff; }
-.barra__sello .isotipo__brote { fill: #ffffff; }
-
 /* En la cabecera de la encuesta va en grande, presentando la herramienta. */
 .marca-intro {
   display: flex;
@@ -157,7 +151,6 @@ body::after {
   margin-bottom: var(--e-4);
 }
 .marca-intro .isotipo { width: 68px; height: 68px; flex-shrink: 0; }
-.marca-intro .isotipo__fondo { fill: rgba(255, 255, 255, .94); }
 .marca-intro .isotipo__brote { fill: #ffffff; }
 
 .barra__sufijo {

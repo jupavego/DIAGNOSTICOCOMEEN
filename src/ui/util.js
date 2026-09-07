@@ -97,7 +97,6 @@
     pieza('circle', { cx: 50, cy: 50, r: 48, 'class': 'isotipo__fondo' });
     pieza('path', con(trazo, { d: 'M20 68L42 44L58 60L82 28', 'class': 'isotipo__linea' }));
     pieza('path', con(trazo, { d: 'M66 28H82V44', 'class': 'isotipo__linea' }));
-    pieza('circle', { cx: 58, cy: 28, r: 11, 'class': 'isotipo__punto' });
     pieza('path', { d: 'M44 40C38 37 36 43 40 47C44 51 50 45 50 40Z',
                     'stroke-width': 2.5, 'stroke-linejoin': 'round', 'class': 'isotipo__brote' });
     pieza('path', { d: 'M68 40C74 37 76 43 72 47C68 51 62 45 62 40Z',

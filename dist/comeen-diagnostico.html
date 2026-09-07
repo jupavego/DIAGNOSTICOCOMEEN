@@ -289,9 +289,8 @@ body::after {
    Los colores salen de los tokens, no del SVG, para que la marca no pueda
    desincronizarse del resto de la aplicación. */
 .isotipo { display: block; }
-.isotipo__fondo  { fill: var(--brand-surface); }
+.isotipo__fondo  { fill: var(--acento); }
 .isotipo__linea  { stroke: var(--brand); }
-.isotipo__punto  { fill: var(--acento); }
 .isotipo__brote  { fill: var(--superficie); stroke: var(--brand); }
 
 .barra__sello {
@@ -303,11 +302,6 @@ body::after {
 }
 .barra__sello .isotipo { width: 32px; height: 32px; }
 
-/* Sobre el violeta de la barra, el isotipo necesita su propio fondo claro
-   para no perderse: el círculo de marca ya no contrasta ahí. */
-.barra__sello .isotipo__fondo { fill: #ffffff; }
-.barra__sello .isotipo__brote { fill: #ffffff; }
-
 /* En la cabecera de la encuesta va en grande, presentando la herramienta. */
 .marca-intro {
   display: flex;
@@ -316,7 +310,6 @@ body::after {
   margin-bottom: var(--e-4);
 }
 .marca-intro .isotipo { width: 68px; height: 68px; flex-shrink: 0; }
-.marca-intro .isotipo__fondo { fill: rgba(255, 255, 255, .94); }
 .marca-intro .isotipo__brote { fill: #ffffff; }
 
 .barra__sufijo {
@@ -3028,7 +3021,6 @@ textarea.campo__control { resize: vertical; min-height: 88px; }
     pieza('circle', { cx: 50, cy: 50, r: 48, 'class': 'isotipo__fondo' });
     pieza('path', con(trazo, { d: 'M20 68L42 44L58 60L82 28', 'class': 'isotipo__linea' }));
     pieza('path', con(trazo, { d: 'M66 28H82V44', 'class': 'isotipo__linea' }));
-    pieza('circle', { cx: 58, cy: 28, r: 11, 'class': 'isotipo__punto' });
     pieza('path', { d: 'M44 40C38 37 36 43 40 47C44 51 50 45 50 40Z',
                     'stroke-width': 2.5, 'stroke-linejoin': 'round', 'class': 'isotipo__brote' });
     pieza('path', { d: 'M68 40C74 37 76 43 72 47C68 51 62 45 62 40Z',
