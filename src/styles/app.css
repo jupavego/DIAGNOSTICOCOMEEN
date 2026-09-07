@@ -48,6 +48,13 @@ body {
   100%   { transform: translate(0, -20px); }
 }
 
+/* Giro de cada hexágono sobre su propio centro. La duración y el sentido los
+   asigna fondo.js, uno por uno: aquí solo vive el recorrido. */
+@keyframes panal-giro {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
 /* El destello es un tramo corto del contorno que se desplaza por él. El
    perímetro está normalizado a 1000 unidades con pathLength, así que un mismo
    recorrido sirve para hexágonos de cualquier tamaño. */
@@ -82,7 +89,7 @@ body::after {
    una banda pequeña y estática, no necesita animarse. */
 
 @media (prefers-reduced-motion: reduce) {
-  .fondo-panal { animation: none; }
+  .fondo-panal, .fondo-panal > g { animation: none; }
   .fondo-panal__brillo { animation: none; display: none; }
 }
 

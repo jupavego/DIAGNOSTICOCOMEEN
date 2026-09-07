@@ -5,10 +5,17 @@
    por una razón concreta: como imagen no se puede animar cada contorno por
    separado, y el reflejo tiene que recorrer el perímetro de cada hexágono.
 
-   Dos movimientos, los dos muy lentos:
+   Tres movimientos, los tres muy lentos:
 
      órbita   toda la capa describe un círculo de unos 20 px cada 4 minutos.
               No se percibe mirando; se percibe al volver a mirar.
+     giro     cada hexágono rota sobre su propio centro, entre 3 y 6 minutos
+              por vuelta, unos en un sentido y otros en el contrario para que
+              el conjunto no parezca un engranaje. Al tener seis lados iguales
+              vuelve a verse idéntico cada 60°, así que el giro no se lee como
+              algo dando vueltas sino como un cambio casi imperceptible en la
+              trama — se nota sobre todo porque el reflejo arranca desde un
+              punto distinto en cada pasada.
      reflejo  un destello corto recorre el contorno de cada hexágono en 15
               segundos. Los arranques están escalonados para que nunca
               destellen todos a la vez.
@@ -83,14 +90,30 @@
     svg.setAttribute('viewBox', '0 0 ' + ancho + ' ' + alto);
 
     piezas.forEach(function (p, i) {
-      var d = trazoHexagono(p[0], p[1], p[2], p[3]);
+      var cx = p[0], cy = p[1];
+      var d = trazoHexagono(cx, cy, p[2], p[3]);
       var color = p[4], opacidad = p[5], relleno = p[6];
 
+      /* Un grupo por hexágono: el giro se aplica aquí, no a cada trazo, para
+         que relleno, contorno y reflejo roten juntos.
+
+         El centro se declara en coordenadas del viewBox en lugar de confiar en
+         'transform-box: fill-box', que no todos los navegadores resuelven igual
+         sobre un <g>. Aquí sabemos el centro exacto: usarlo es más simple y más
+         predecible. */
+      var grupo = nodo('g', {});
+      grupo.style.transformOrigin = cx + 'px ' + cy + 'px';
+      /* Duraciones repartidas entre 3 y 6 minutos, alternando el sentido: dos
+         hexágonos vecinos nunca giran igual. */
+      grupo.style.animation = 'panal-giro ' + (180 + (i * 37) % 180) + 's linear infinite';
+      grupo.style.animationDirection = (i % 2) ? 'reverse' : 'normal';
+      svg.appendChild(grupo);
+
       if (relleno) {
-        svg.appendChild(nodo('path', { d: d, fill: color, 'fill-opacity': relleno, stroke: 'none' }));
+        grupo.appendChild(nodo('path', { d: d, fill: color, 'fill-opacity': relleno, stroke: 'none' }));
       }
 
-      svg.appendChild(nodo('path', {
+      grupo.appendChild(nodo('path', {
         d: d, fill: 'none', stroke: color, 'stroke-opacity': opacidad,
         'stroke-width': 2, 'stroke-linejoin': 'round'
       }));
@@ -107,7 +130,7 @@
       /* Arranques escalonados a lo largo del ciclo de 15 s: nunca destellan
          todos a la vez. */
       brillo.style.animationDelay = (-(i * 15 / piezas.length)).toFixed(2) + 's';
-      svg.appendChild(brillo);
+      grupo.appendChild(brillo);
     });
   }
 
