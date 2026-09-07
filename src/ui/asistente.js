@@ -93,8 +93,14 @@
     function pantallaIntro() {
       return el('div', null, [
         el('div.resultado__cabecera', null, [
-          el('p.resultado__eyebrow', { texto: 'Diagnóstico digital COMEEN' }),
-          el('h1.resultado__negocio', { texto: 'Conozcamos su negocio' }),
+          el('div.marca-intro', null, [
+            U.isotipo(),
+            el('div', null, [
+              el('p.resultado__eyebrow', { texto: 'Diagnóstico digital' }),
+              el('p', { style: 'margin:0;font-family:var(--font-titulo);font-weight:800;font-size:var(--texto-lg);color:#fff;letter-spacing:.2px', texto: 'COMEEN' })
+            ])
+          ]),
+          el('h1.resultado__negocio', { style: 'margin-top:0', texto: 'Conozcamos su negocio' }),
           el('p.resultado__mensaje', {
             texto: 'Son unas preguntas cortas sobre cómo se ve hoy su negocio en Internet. ' +
                    'Al terminar le mostramos en qué está bien, qué le falta y cómo podemos ayudarle. ' +

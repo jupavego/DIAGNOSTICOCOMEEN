@@ -76,7 +76,7 @@
 
     zonaBarra.appendChild(el('div.barra__vidrio', null, [
       el('div.barra__marca', null, [
-        el('span.barra__sello', { 'aria-hidden': 'true' }, '🍽'),
+        el('span.barra__sello', { 'aria-hidden': 'true' }, [U.isotipo()]),
         'COMEEN',
         el('span.barra__sufijo', {
           texto: estado.modo === 'panel' ? 'Panel' : 'Diagnóstico digital'
