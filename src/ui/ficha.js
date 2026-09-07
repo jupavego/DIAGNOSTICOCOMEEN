@@ -31,7 +31,7 @@
   }
 
   function bloqueContacto(registro) {
-    var n = registro.negocio;
+    var n = registro.negocio || {};
     var wa = enlaceWhatsapp(n.whatsapp || n.telefono);
     return el('div.tarjeta', null, [
       el('p.tarjeta__titulo', { texto: 'Datos del negocio' }),

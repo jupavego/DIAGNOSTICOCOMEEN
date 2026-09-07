@@ -2327,8 +2327,17 @@ textarea.campo__control { resize: vertical; min-height: 88px; }
     };
   }
 
+  /* Devuelve SIEMPRE un registro con la forma canónica completa, por
+     incompleto que venga de la base.
+
+     Esto no es paranoia: la tabla acepta inserciones anónimas, así que una
+     fila mal formada —una prueba, un cliente viejo, alguien tanteando la API—
+     llegaría hasta el panel. Si la interfaz asumiera que 'negocio' existe,
+     esa sola fila dejaría el panel en blanco para el administrador. Se
+     normaliza aquí, una vez, y no en cada vista. */
   function deFila(fila) {
-    var r = fila.datos || {};
+    var r = (fila && typeof fila.datos === 'object' && fila.datos) ? fila.datos : {};
+
     /* Las columnas que el panel edita mandan sobre lo que traiga el json:
        si se cambió el estado por SQL, esa es la verdad. */
     r.id = fila.id;
@@ -2336,6 +2345,25 @@ textarea.campo__control { resize: vertical; min-height: 88px; }
     r.origen = fila.origen || r.origen || 'publico';
     r.creado = fila.creado || r.creado;
     r.actualizado = fila.actualizado || r.actualizado;
+    r.versionInstrumento = r.versionInstrumento || fila.version_instrumento || '—';
+
+    /* Si el json no trae los datos del negocio, se reconstruyen con las
+       columnas derivadas: es poco, pero deja la fila legible y editable. */
+    if (!r.negocio || typeof r.negocio !== 'object') {
+      r.negocio = {
+        nombre: fila.negocio_nombre || 'Sin nombre',
+        categoria: fila.categoria || '',
+        municipio: fila.municipio || '',
+        barrio: fila.barrio || ''
+      };
+    }
+    if (!r.madurez  || typeof r.madurez  !== 'object') r.madurez  = {};
+    if (!r.canales  || typeof r.canales  !== 'object') r.canales  = {};
+    if (!r.brechas  || typeof r.brechas  !== 'object') r.brechas  = {};
+    if (!Array.isArray(r.prioridades)) r.prioridades = [];
+    if (typeof r.pago  !== 'string') r.pago  = fila.pago || '';
+    if (typeof r.notas !== 'string') r.notas = '';
+
     return r;
   }
 
@@ -3751,7 +3779,7 @@ textarea.campo__control { resize: vertical; min-height: 88px; }
   function aplicarFiltros(items) {
     var t = filtros.texto.trim().toLowerCase();
     return items.filter(function (x) {
-      var n = x.registro.negocio;
+      var n = x.registro.negocio || {};
       if (filtros.nivel && String(x.d.nivel.id) !== filtros.nivel) return false;
       if (filtros.categoria && global.COMEEN.diagnostico.textoCampo(n, 'categoria') !== filtros.categoria) return false;
       if (filtros.estado && x.registro.estado !== filtros.estado) return false;
@@ -3869,7 +3897,7 @@ textarea.campo__control { resize: vertical; min-height: 88px; }
   }
 
   function graficoBarrios(items) {
-    var datos = aDatos(conteo(items, function (x) { return x.registro.negocio.barrio; }), 'valor').slice(0, 10);
+    var datos = aDatos(conteo(items, function (x) { return (x.registro.negocio || {}).barrio; }), 'valor').slice(0, 10);
     return el('div.tarjeta', null, [
       el('p.tarjeta__titulo', { texto: 'Barrios y veredas' }),
       datos.length ? U.graficoBarras(datos) : el('p.campo__ayuda', { texto: 'Sin barrios registrados todavía.' })
@@ -3882,7 +3910,7 @@ textarea.campo__control { resize: vertical; min-height: 88px; }
     gaps.forEach(function (g) { mapa[g.necesidad] = 0; });
     items.forEach(function (x) {
       gaps.forEach(function (g) {
-        if (global.COMEEN.reglas.brechaActiva(x.registro.brechas[g.id])) mapa[g.necesidad]++;
+        if (global.COMEEN.reglas.brechaActiva((x.registro.brechas || {})[g.id])) mapa[g.necesidad]++;
       });
     });
     var datos = aDatos(mapa, 'valor').filter(function (d) { return d.valor > 0; });
@@ -3942,7 +3970,7 @@ textarea.campo__control { resize: vertical; min-height: 88px; }
 
     var cuerpo = el('tbody');
     items.forEach(function (x) {
-      var n = x.registro.negocio;
+      var n = x.registro.negocio || {};
       cuerpo.appendChild(el('tr', {
         tabindex: '0',
         onclick: function () { alAbrir(x.registro.id); },
@@ -4101,7 +4129,7 @@ textarea.campo__control { resize: vertical; min-height: 88px; }
   }
 
   function bloqueContacto(registro) {
-    var n = registro.negocio;
+    var n = registro.negocio || {};
     var wa = enlaceWhatsapp(n.whatsapp || n.telefono);
     return el('div.tarjeta', null, [
       el('p.tarjeta__titulo', { texto: 'Datos del negocio' }),

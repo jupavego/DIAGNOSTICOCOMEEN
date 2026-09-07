@@ -59,8 +59,17 @@
     };
   }
 
+  /* Devuelve SIEMPRE un registro con la forma canónica completa, por
+     incompleto que venga de la base.
+
+     Esto no es paranoia: la tabla acepta inserciones anónimas, así que una
+     fila mal formada —una prueba, un cliente viejo, alguien tanteando la API—
+     llegaría hasta el panel. Si la interfaz asumiera que 'negocio' existe,
+     esa sola fila dejaría el panel en blanco para el administrador. Se
+     normaliza aquí, una vez, y no en cada vista. */
   function deFila(fila) {
-    var r = fila.datos || {};
+    var r = (fila && typeof fila.datos === 'object' && fila.datos) ? fila.datos : {};
+
     /* Las columnas que el panel edita mandan sobre lo que traiga el json:
        si se cambió el estado por SQL, esa es la verdad. */
     r.id = fila.id;
@@ -68,6 +77,25 @@
     r.origen = fila.origen || r.origen || 'publico';
     r.creado = fila.creado || r.creado;
     r.actualizado = fila.actualizado || r.actualizado;
+    r.versionInstrumento = r.versionInstrumento || fila.version_instrumento || '—';
+
+    /* Si el json no trae los datos del negocio, se reconstruyen con las
+       columnas derivadas: es poco, pero deja la fila legible y editable. */
+    if (!r.negocio || typeof r.negocio !== 'object') {
+      r.negocio = {
+        nombre: fila.negocio_nombre || 'Sin nombre',
+        categoria: fila.categoria || '',
+        municipio: fila.municipio || '',
+        barrio: fila.barrio || ''
+      };
+    }
+    if (!r.madurez  || typeof r.madurez  !== 'object') r.madurez  = {};
+    if (!r.canales  || typeof r.canales  !== 'object') r.canales  = {};
+    if (!r.brechas  || typeof r.brechas  !== 'object') r.brechas  = {};
+    if (!Array.isArray(r.prioridades)) r.prioridades = [];
+    if (typeof r.pago  !== 'string') r.pago  = fila.pago || '';
+    if (typeof r.notas !== 'string') r.notas = '';
+
     return r;
   }
 

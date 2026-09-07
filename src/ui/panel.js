@@ -38,7 +38,7 @@
   function aplicarFiltros(items) {
     var t = filtros.texto.trim().toLowerCase();
     return items.filter(function (x) {
-      var n = x.registro.negocio;
+      var n = x.registro.negocio || {};
       if (filtros.nivel && String(x.d.nivel.id) !== filtros.nivel) return false;
       if (filtros.categoria && global.COMEEN.diagnostico.textoCampo(n, 'categoria') !== filtros.categoria) return false;
       if (filtros.estado && x.registro.estado !== filtros.estado) return false;
@@ -156,7 +156,7 @@
   }
 
   function graficoBarrios(items) {
-    var datos = aDatos(conteo(items, function (x) { return x.registro.negocio.barrio; }), 'valor').slice(0, 10);
+    var datos = aDatos(conteo(items, function (x) { return (x.registro.negocio || {}).barrio; }), 'valor').slice(0, 10);
     return el('div.tarjeta', null, [
       el('p.tarjeta__titulo', { texto: 'Barrios y veredas' }),
       datos.length ? U.graficoBarras(datos) : el('p.campo__ayuda', { texto: 'Sin barrios registrados todavía.' })
@@ -169,7 +169,7 @@
     gaps.forEach(function (g) { mapa[g.necesidad] = 0; });
     items.forEach(function (x) {
       gaps.forEach(function (g) {
-        if (global.COMEEN.reglas.brechaActiva(x.registro.brechas[g.id])) mapa[g.necesidad]++;
+        if (global.COMEEN.reglas.brechaActiva((x.registro.brechas || {})[g.id])) mapa[g.necesidad]++;
       });
     });
     var datos = aDatos(mapa, 'valor').filter(function (d) { return d.valor > 0; });
@@ -229,7 +229,7 @@
 
     var cuerpo = el('tbody');
     items.forEach(function (x) {
-      var n = x.registro.negocio;
+      var n = x.registro.negocio || {};
       cuerpo.appendChild(el('tr', {
         tabindex: '0',
         onclick: function () { alAbrir(x.registro.id); },
