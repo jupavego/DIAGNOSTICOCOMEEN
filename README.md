@@ -15,10 +15,17 @@ DATOS DEL NEGOCIO → DIAGNÓSTICO → PUNTAJE → NIVEL → BRECHAS
 **En el computador, sin instalar nada:**
 
 ```bash
-python -m http.server 8765 --directory form
+python form/servidor.py
 ```
 
 Luego abrir `http://localhost:8765`.
+
+Es un `http.server` con una sola diferencia, y no es cosmética: sirve todo con
+`no-store`. El servidor de Python estándar no manda cabeceras de caché, así que
+el navegador aplica su propia heurística y se queda con los `.js` y `.css`
+viejos — `index.html` sí se revalida, el resto no. El resultado es ver media
+aplicación nueva y media vieja sin entender por qué. En producción no hace
+falta: Vercel ya manda `max-age=0, must-revalidate`.
 
 Abrir `index.html` con doble clic también funciona, pero algunos navegadores
 bloquean el guardado local desde `file://`. El servidor evita ese problema.
@@ -124,6 +131,7 @@ esperando. Al encuestador nunca se le dice que perdió su trabajo.
 form/
 ├── index.html                    versión de desarrollo (módulos separados)
 ├── build.js                      empaqueta todo en un archivo
+├── servidor.py                   servidor de desarrollo, sin caché
 ├── dist/comeen-diagnostico.html  archivo único publicable
 │
 ├── vercel.json                   rutas y cabeceras de seguridad
