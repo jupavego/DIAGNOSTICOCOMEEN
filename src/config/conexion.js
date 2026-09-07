@@ -23,7 +23,7 @@
 
   var SUPABASE = {
     url: 'https://iiktbawvhceqzusbvkvx.supabase.co',
-    anonKey: '',    // ← pegar aquí la llave 'anon public' (Project Settings → API)
+    anonKey: 'sb_publishable_Y_cOoe-Cn7Wdj0cT95AGEQ_vBVbUmkH',
     tabla: 'diagnosticos'
   };
 
