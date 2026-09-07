@@ -65,6 +65,7 @@
   --acento:         var(--orange-500);
   --acento-rgb:     255, 106, 20;
   --acento-surface: var(--orange-50);
+  --acento-on:      #ffffff;   /* lo que se dibuja encima del naranja */
   --gradiente-marca:  linear-gradient(135deg, var(--violet-600) 0%, var(--violet-500) 100%);
   --gradiente-calido: linear-gradient(135deg, #ff5f0a 0%, #ff9a3d 100%);
 

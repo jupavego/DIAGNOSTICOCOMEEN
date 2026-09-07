@@ -129,10 +129,13 @@ body::after {
 /* ── Isotipo ──────────────────────────────────────────────────────────────
    Los colores salen de los tokens, no del SVG, para que la marca no pueda
    desincronizarse del resto de la aplicación. */
+/* Disco naranja, flecha blanca, brotes violeta: los tres colores de la marca,
+   cada uno con un papel. La flecha en blanco es además la que mejor contrasta
+   sobre el naranja, y los brotes llevan filo blanco para no fundirse con él. */
 .isotipo { display: block; }
 .isotipo__fondo  { fill: var(--acento); }
-.isotipo__linea  { stroke: var(--brand); }
-.isotipo__brote  { fill: var(--superficie); stroke: var(--brand); }
+.isotipo__linea  { stroke: var(--acento-on); }
+.isotipo__brote  { fill: var(--brand); stroke: var(--acento-on); }
 
 .barra__sello {
   display: grid;
@@ -151,7 +154,6 @@ body::after {
   margin-bottom: var(--e-4);
 }
 .marca-intro .isotipo { width: 68px; height: 68px; flex-shrink: 0; }
-.marca-intro .isotipo__brote { fill: #ffffff; }
 
 .barra__sufijo {
   font-weight: 500;
