@@ -1,0 +1,151 @@
+/* ============================================================================
+   styles/tokens.css - Design tokens COMEEN
+   ----------------------------------------------------------------------------
+   Marca tomada del sistema de "Come en Girardota" (src/styles/_tokens.scss):
+   violeta corporativo, naranja de acento, Poppins + Manrope.
+
+   TEMA CLARO COMPROMETIDO. La aplicacion se ve igual en cualquier dispositivo,
+   tenga o no modo oscuro el sistema: fondos claros siempre. Por eso no hay
+   bloques @media (prefers-color-scheme) ni [data-theme]; en cambio cada color
+   -incluido el fondo del body- se pinta explicitamente, para que la pagina no
+   herede el fondo del entorno donde se abra.
+
+   Los neutros no son grises puros: llevan un sesgo hacia el violeta de marca,
+   que es lo que los hace verse elegidos y no heredados.
+
+   La rampa de graficos esta verificada con el validador de paleta sobre el
+   fondo real (#f7f5fb): pasos monotonos, separacion suficiente, un solo tono.
+   ========================================================================== */
+
+:root {
+  color-scheme: light;
+
+  /* -- Violeta corporativo --------------------------------------------- */
+  --violet-50:  #f1eefc;
+  --violet-100: #e4defa;
+  --violet-200: #cdc2f6;
+  --violet-300: #a48fe8;
+  --violet-400: #8b6fe0;
+  --violet-500: #7662ec;
+  --violet-600: #5e49d6;
+  --violet-700: #3d2bbf;
+  --violet-800: #2d1fa0;
+  --violet-900: #1e1480;
+
+  /* -- Naranja de acento (vivo) ---------------------------------------- */
+  --orange-50:  #fff4ec;
+  --orange-100: #ffe6d5;
+  --orange-200: #ffcaa6;
+  --orange-400: #ff9a3d;
+  --orange-500: #ff6a14;
+  --orange-600: #f4590a;
+  --orange-700: #d64a06;
+
+  /* -- Neutros con sesgo violeta --------------------------------------- */
+  --neutral-0:   #ffffff;
+  --neutral-50:  #faf9fd;
+  --neutral-100: #f4f2fa;
+  --neutral-200: #e7e3f2;
+  --neutral-300: #d6d0e6;
+  --neutral-400: #b3abcb;
+  --neutral-500: #948caf;
+  --neutral-600: #6f688c;
+  --neutral-700: #565073;
+  --neutral-800: #322d47;
+  --neutral-900: #1a1626;
+
+  /* -- Roles de marca --------------------------------------------------- */
+  --brand:          var(--violet-600);
+  --brand-rgb:      94, 73, 214;
+  --brand-light:    var(--violet-500);
+  --brand-dark:     var(--violet-700);
+  --brand-border:   var(--violet-200);
+  --brand-surface:  var(--violet-50);
+  --brand-on:       #ffffff;
+  --acento:         var(--orange-500);
+  --acento-rgb:     255, 106, 20;
+  --acento-surface: var(--orange-50);
+  --gradiente-marca:  linear-gradient(135deg, var(--violet-600) 0%, var(--violet-500) 100%);
+  --gradiente-calido: linear-gradient(135deg, #ff5f0a 0%, #ff9a3d 100%);
+
+  /* Cabecera del resultado: la unica banda de color pleno de la aplicacion.
+     Violeta de marca, no un fondo oscuro generico. */
+  --hero: linear-gradient(140deg, #3d2bbf 0%, #5e49d6 46%, #8b6fe0 100%);
+  --hero-brillo: radial-gradient(circle, rgba(255, 154, 61, .38) 0%, transparent 70%);
+
+  /* -- Superficies y texto ---------------------------------------------- */
+  --fondo:        #f7f5fb;
+  --superficie:   #ffffff;
+  --superficie-2: #faf9fd;
+  --superficie-3: #f1eef8;
+  --texto:        #1a1626;
+  --texto-2:      #565073;
+  --texto-3:      #857ea0;
+  --borde:        #e7e3f2;
+  --borde-fuerte: #d6d0e6;
+
+  /* -- Estados de nivel --------------------------------------------------
+     Paleta de estado: siempre acompanada del numero y el nombre del nivel,
+     nunca del color a solas. */
+  --nivel-1:         #d03b3b;
+  --nivel-1-surface: #fdeced;
+  --nivel-1-texto:   #9b2020;
+  --nivel-2:         #f2a20c;
+  --nivel-2-surface: #fef4e0;
+  --nivel-2-texto:   #8a5300;
+  --nivel-3:         #0ca30c;
+  --nivel-3-surface: #e6f7e6;
+  --nivel-3-texto:   #0a6b0a;
+
+  /* -- Semanticos -------------------------------------------------------- */
+  --bien:     #0ca30c;
+  --aviso:    #a35c00;
+  --critico:  #c0261f;
+  --info:     #2563eb;
+  --whatsapp: #25d366;
+
+  /* -- Rampa ordinal para graficos (violeta, claro -> oscuro) ------------ */
+  --serie-1: #a48fe8;
+  --serie-2: #7662ec;
+  --serie-3: #5e49d6;
+  --serie-4: #3d2bbf;
+  --serie-5: #1e1480;
+  --grafico-eje:  #857ea0;
+  --grafico-reja: #e7e3f2;
+
+  /* -- Tipografia -------------------------------------------------------- */
+  --font-titulo: 'Poppins', 'Segoe UI', system-ui, sans-serif;
+  --font-cuerpo: 'Manrope', 'Segoe UI', system-ui, sans-serif;
+
+  --texto-xs:   0.75rem;
+  --texto-sm:   0.875rem;
+  --texto-base: 1rem;
+  --texto-md:   1.125rem;
+  --texto-lg:   1.25rem;
+  --texto-xl:   1.5rem;
+  --texto-2xl:  2rem;
+  --texto-3xl:  2.5rem;
+
+  /* -- Espaciado, bordes, sombras, movimiento --------------------------- */
+  --e-1: 0.25rem; --e-2: 0.5rem;  --e-3: 0.75rem; --e-4: 1rem;
+  --e-5: 1.25rem; --e-6: 1.5rem;  --e-8: 2rem;    --e-10: 2.5rem; --e-12: 3rem;
+
+  --radio-xs: 4px;  --radio-sm: 8px;  --radio-md: 12px;
+  --radio-lg: 16px; --radio-xl: 20px; --radio-full: 9999px;
+
+  /* Sombras tenidas de violeta: sobre fondo claro un gris neutro se ve sucio. */
+  --sombra-xs: 0 1px 2px rgba(26, 22, 38, .05);
+  --sombra-sm: 0 2px 8px rgba(45, 31, 160, .07);
+  --sombra-md: 0 6px 20px rgba(45, 31, 160, .10);
+  --sombra-lg: 0 14px 40px rgba(45, 31, 160, .16);
+  --sombra-marca: 0 6px 18px rgba(var(--brand-rgb), .30);
+
+  --dur-rapida: 150ms;
+  --dur-normal: 200ms;
+  --dur-lenta:  300ms;
+  --curva: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-rapida: 0ms; --dur-normal: 0ms; --dur-lenta: 0ms; }
+}
